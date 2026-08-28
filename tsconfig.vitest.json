@@ -1,0 +1,372 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "cordis": [
+        "../.dsh/source/current/vendor/cordis/src"
+      ],
+      "cosmokit": [
+        "../.dsh/source/current/vendor/cosmokit/src"
+      ],
+      "schemastery": [
+        "../.dsh/source/current/vendor/schemastery/src"
+      ],
+      "@cordisjs/plugin-loader": [
+        "../.dsh/source/current/vendor/loader/src"
+      ],
+      "@cordisjs/plugin-loader/repository": [
+        "../.dsh/source/current/vendor/loader/src/repository.ts"
+      ],
+      "@cordisjs/plugin-include": [
+        "../.dsh/source/current/vendor/include/src"
+      ],
+      "@cordisjs/plugin-group": [
+        "../.dsh/source/current/vendor/group/src"
+      ],
+      "@cordisjs/plugin-timer": [
+        "../.dsh/source/current/vendor/timer/src"
+      ],
+      "@cordisjs/plugin-hmr": [
+        "../.dsh/source/current/vendor/hmr/src"
+      ],
+      "@cordisjs/plugin-logger-console": [
+        "../.dsh/source/current/vendor/logger-console/src"
+      ],
+      "@deepseek-ai/dsh-invariants": [
+        "../.dsh/source/current/packages/support/invariants/src/index.ts"
+      ],
+      "@deepseek-ai/dsh-typert-registry": [
+        "../.dsh/source/current/packages/typert/registry/src/index.ts"
+      ],
+      "@deepseek-ai/dsh-typert-loader": [
+        "../.dsh/source/current/packages/typert/loader/src/index.ts"
+      ],
+      "@deepseek-ai/dsh-session/invariant": [
+        "../.dsh/source/current/packages/core/session/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-typert-registry/types": [
+        "../.dsh/source/current/packages/typert/registry/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-typert-generator": [
+        "../.dsh/source/current/packages/typert/generator/src/index.ts"
+      ],
+      "@deepseek-ai/dsh-session/types": [
+        "../.dsh/source/current/packages/core/session/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-session/surface": [
+        "../.dsh/source/current/packages/core/session/src/surface.ts"
+      ],
+      "@deepseek-ai/dsh-session-projection/types": [
+        "../.dsh/source/current/packages/session-projection/session-projection/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-tool-todo/types": [
+        "../.dsh/source/current/packages/todo/tool-todo/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-tool-todo/client": [
+        "../.dsh/source/current/packages/todo/tool-todo/src/client.ts"
+      ],
+      "@deepseek-ai/dsh-session-title/types": [
+        "../.dsh/source/current/packages/session-title/session-title/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-session-title/client": [
+        "../.dsh/source/current/packages/session-title/session-title/src/client.ts"
+      ],
+      "@deepseek-ai/dsh-plan-mode/types": [
+        "../.dsh/source/current/packages/plan/plan-mode/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-plan-mode/client": [
+        "../.dsh/source/current/packages/plan/plan-mode/src/client.ts"
+      ],
+      "@deepseek-ai/dsh-goal/types": [
+        "../.dsh/source/current/packages/goal/goal/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-goal/client": [
+        "../.dsh/source/current/packages/goal/goal/src/client.ts"
+      ],
+      "@deepseek-ai/dsh-llm/types": [
+        "../.dsh/source/current/packages/llm/llm/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-llm/brand": [
+        "../.dsh/source/current/packages/llm/llm/src/brand.ts"
+      ],
+      "@deepseek-ai/dsh-llm-retry/types": [
+        "../.dsh/source/current/packages/llm/llm-retry/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-llm/message": [
+        "../.dsh/source/current/packages/llm/llm/src/message.ts"
+      ],
+      "@deepseek-ai/dsh-commands/brand": [
+        "../.dsh/source/current/packages/ui/commands/src/brand.ts"
+      ],
+      "@deepseek-ai/dsh-compact/checkpoint": [
+        "../.dsh/source/current/packages/compact/compact/src/checkpoint.ts"
+      ],
+      "@deepseek-ai/dsh-tools/presentation": [
+        "../.dsh/source/current/packages/core/tools/src/presentation.ts"
+      ],
+      "@deepseek-ai/dsh-tool-subagent-control/list-agents": [
+        "../.dsh/source/current/packages/subagent/tool-subagent-control/src/list-agents.ts"
+      ],
+      "@deepseek-ai/dsh-user-approval/types": [
+        "../.dsh/source/current/packages/ui/user-approval/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-user-interaction/types": [
+        "../.dsh/source/current/packages/ui/user-interaction/src/types.ts"
+      ],
+      "@deepseek-ai/dsh-agent/brand": [
+        "../.dsh/source/current/packages/core/agent/src/brand.ts"
+      ],
+      "@deepseek-ai/dsh-agent/invariant": [
+        "../.dsh/source/current/packages/core/agent/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-scope/invariant": [
+        "../.dsh/source/current/packages/core/scope/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-agent-loop/invariant": [
+        "../.dsh/source/current/packages/core/agent-loop/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-*/invariant": [
+        "../.dsh/source/current/packages/core/*/src/invariant.ts",
+        "../.dsh/source/current/packages/prompt/*/src/invariant.ts",
+        "../.dsh/source/current/packages/llm/*/src/invariant.ts",
+        "../.dsh/source/current/packages/bash/*/src/invariant.ts",
+        "../.dsh/source/current/packages/subprocess/*/src/invariant.ts",
+        "../.dsh/source/current/packages/code-runtime/*/src/invariant.ts",
+        "../.dsh/source/current/packages/fs/*/src/invariant.ts",
+        "../.dsh/source/current/packages/skill/*/src/invariant.ts",
+        "../.dsh/source/current/packages/compact/*/src/invariant.ts",
+        "../.dsh/source/current/packages/context/*/src/invariant.ts",
+        "../.dsh/source/current/packages/goal/*/src/invariant.ts",
+        "../.dsh/source/current/packages/guard/*/src/invariant.ts",
+        "../.dsh/source/current/packages/plan/*/src/invariant.ts",
+        "../.dsh/source/current/packages/subagent/*/src/invariant.ts",
+        "../.dsh/source/current/packages/tasks/*/src/invariant.ts",
+        "../.dsh/source/current/packages/workflow/*/src/invariant.ts",
+        "../.dsh/source/current/packages/web/*/src/invariant.ts",
+        "../.dsh/source/current/packages/spill/*/src/invariant.ts",
+        "../.dsh/source/current/packages/timeout/*/src/invariant.ts",
+        "../.dsh/source/current/packages/todo/*/src/invariant.ts",
+        "../.dsh/source/current/packages/cordis/*/src/invariant.ts",
+        "../.dsh/source/current/packages/sandbox/*/src/invariant.ts",
+        "../.dsh/source/current/packages/hooks/*/src/invariant.ts",
+        "../.dsh/source/current/packages/session-persistence/*/src/invariant.ts",
+        "../.dsh/source/current/packages/session-projection/*/src/invariant.ts",
+        "../.dsh/source/current/packages/session-title/*/src/invariant.ts",
+        "../.dsh/source/current/packages/session-query/*/src/invariant.ts",
+        "../.dsh/source/current/packages/settings/*/src/invariant.ts",
+        "../.dsh/source/current/packages/credentials/*/src/invariant.ts",
+        "../.dsh/source/current/packages/telemetry/*/src/invariant.ts",
+        "../.dsh/source/current/packages/acp/*/src/invariant.ts",
+        "../.dsh/source/current/packages/storage/*/src/invariant.ts",
+        "../.dsh/source/current/packages/workspace/*/src/invariant.ts",
+        "../.dsh/source/current/packages/sdk/*/src/invariant.ts",
+        "../.dsh/source/current/packages/ui/*/src/invariant.ts",
+        "../.dsh/source/current/packages/examples/*/src/invariant.ts",
+        "../.dsh/source/current/packages/util/*/src/invariant.ts",
+        "../.dsh/source/current/packages/mcp/*/src/invariant.ts",
+        "../.dsh/source/current/packages/support/*/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-host-*/invariant": [
+        "../.dsh/source/current/packages/host/*/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-client-*/invariant": [
+        "../.dsh/source/current/packages/client/*/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-client-*/client": [
+        "../.dsh/source/current/packages/client/*/src/client"
+      ],
+      "@deepseek-ai/dsh-host-apiproxy": [
+        "../.dsh/source/current/packages/host/apiproxy/src"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker": [
+        "../.dsh/source/current/packages/host/directory-picker/src"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker/*": [
+        "../.dsh/source/current/packages/host/directory-picker/src/*"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-browse": [
+        "../.dsh/source/current/packages/host/directory-picker-browse/src"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-browse/*": [
+        "../.dsh/source/current/packages/host/directory-picker-browse/src/*"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-native": [
+        "../.dsh/source/current/packages/host/directory-picker-native/src"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-native/*": [
+        "../.dsh/source/current/packages/host/directory-picker-native/src/*"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-auto": [
+        "../.dsh/source/current/packages/host/directory-picker-auto/src"
+      ],
+      "@deepseek-ai/dsh-host-directory-picker-auto/*": [
+        "../.dsh/source/current/packages/host/directory-picker-auto/src/*"
+      ],
+      "@deepseek-ai/dsh-host-apiproxy/client": [
+        "../.dsh/source/current/packages/host/apiproxy/src/fetch/client.ts"
+      ],
+      "@deepseek-ai/dsh-host-apiproxy/*": [
+        "../.dsh/source/current/packages/host/apiproxy/src/*"
+      ],
+      "@deepseek-ai/dsh-host-webserver": [
+        "../.dsh/source/current/packages/host/webserver/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-slots": [
+        "../.dsh/source/current/packages/client/ui-slots/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-primitives": [
+        "../.dsh/source/current/packages/client/ui-primitives/src"
+      ],
+      "@deepseek-ai/dsh-client-schema-form": [
+        "../.dsh/source/current/packages/client/schema-form/src"
+      ],
+      "@deepseek-ai/dsh-client-schema-form/invariant": [
+        "../.dsh/source/current/packages/client/schema-form/src/invariant.ts"
+      ],
+      "@deepseek-ai/dsh-client-web-react": [
+        "../.dsh/source/current/packages/client/web-react/src"
+      ],
+      "@deepseek-ai/dsh-client-connection": [
+        "../.dsh/source/current/packages/client/connection/src"
+      ],
+      "@deepseek-ai/dsh-client-hmr": [
+        "../.dsh/source/current/packages/client/hmr/src"
+      ],
+      "@deepseek-ai/dsh-client-modules": [
+        "../.dsh/source/current/packages/client/modules/src"
+      ],
+      "@deepseek-ai/dsh-client-runtime": [
+        "../.dsh/source/current/packages/client/runtime/src"
+      ],
+      "@deepseek-ai/dsh-client-runtime/client": [
+        "../.dsh/source/current/packages/client/runtime/src/client"
+      ],
+      "@deepseek-ai/dsh-client-test-runtime": [
+        "../.dsh/source/current/packages/client/test-runtime/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-layout": [
+        "../.dsh/source/current/packages/client/ui-layout/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-sidebar": [
+        "../.dsh/source/current/packages/client/ui-sidebar/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-conversation": [
+        "../.dsh/source/current/packages/client/ui-conversation/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-slash": [
+        "../.dsh/source/current/packages/client/ui-slash/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-command": [
+        "../.dsh/source/current/packages/client/ui-command/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-model": [
+        "../.dsh/source/current/packages/client/ui-model/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-goal": [
+        "../.dsh/source/current/packages/client/ui-goal/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-permission": [
+        "../.dsh/source/current/packages/client/ui-permission/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-skill": [
+        "../.dsh/source/current/packages/client/ui-skill/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-subagent": [
+        "../.dsh/source/current/packages/client/ui-subagent/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-plan": [
+        "../.dsh/source/current/packages/client/ui-plan/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-question": [
+        "../.dsh/source/current/packages/client/ui-question/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-trajectory": [
+        "../.dsh/source/current/packages/client/ui-trajectory/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-workspace": [
+        "../.dsh/source/current/packages/client/ui-workspace/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-theme": [
+        "../.dsh/source/current/packages/client/ui-theme/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings": [
+        "../.dsh/source/current/packages/client/ui-settings/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-settings-general": [
+        "../.dsh/source/current/packages/client/ui-settings-general/src"
+      ],
+      "@deepseek-ai/dsh-client-ui-models": [
+        "../.dsh/source/current/packages/client/ui-models/src"
+      ],
+      "@deepseek-ai/dsh-client-locale": [
+        "../.dsh/source/current/packages/client/locale/src"
+      ],
+      "@deepseek-ai/dsh-client-web": [
+        "../.dsh/source/current/packages/client/web/src"
+      ],
+      "@deepseek-ai/dsh-*": [
+        "../.dsh/source/current/packages/core/*/src",
+        "../.dsh/source/current/packages/prompt/*/src",
+        "../.dsh/source/current/packages/llm/*/src",
+        "../.dsh/source/current/packages/bash/*/src",
+        "../.dsh/source/current/packages/pty/*/src",
+        "../.dsh/source/current/packages/subprocess/*/src",
+        "../.dsh/source/current/packages/code-runtime/*/src",
+        "../.dsh/source/current/packages/fs/*/src",
+        "../.dsh/source/current/packages/lsp/*/src",
+        "../.dsh/source/current/packages/skill/*/src",
+        "../.dsh/source/current/packages/compact/*/src",
+        "../.dsh/source/current/packages/context/*/src",
+        "../.dsh/source/current/packages/goal/*/src",
+        "../.dsh/source/current/packages/guard/*/src",
+        "../.dsh/source/current/packages/plan/*/src",
+        "../.dsh/source/current/packages/subagent/*/src",
+        "../.dsh/source/current/packages/tasks/*/src",
+        "../.dsh/source/current/packages/workflow/*/src",
+        "../.dsh/source/current/packages/web/*/src",
+        "../.dsh/source/current/packages/spill/*/src",
+        "../.dsh/source/current/packages/timeout/*/src",
+        "../.dsh/source/current/packages/todo/*/src",
+        "../.dsh/source/current/packages/cordis/*/src",
+        "../.dsh/source/current/packages/sandbox/*/src",
+        "../.dsh/source/current/packages/hooks/*/src",
+        "../.dsh/source/current/packages/session-persistence/*/src",
+        "../.dsh/source/current/packages/session-projection/*/src",
+        "../.dsh/source/current/packages/session-query/*/src",
+        "../.dsh/source/current/packages/session-title/*/src",
+        "../.dsh/source/current/packages/settings/*/src",
+        "../.dsh/source/current/packages/credentials/*/src",
+        "../.dsh/source/current/packages/telemetry/*/src",
+        "../.dsh/source/current/packages/acp/*/src",
+        "../.dsh/source/current/packages/storage/*/src",
+        "../.dsh/source/current/packages/workspace/*/src",
+        "../.dsh/source/current/packages/sdk/*/src",
+        "../.dsh/source/current/packages/ui/*/src",
+        "../.dsh/source/current/packages/examples/*/src",
+        "../.dsh/source/current/packages/util/*/src",
+        "../.dsh/source/current/packages/mcp/*/src",
+        "../.dsh/source/current/packages/support/*/src",
+        "../.dsh/source/current/packages/host/*/src",
+        "../.dsh/source/current/packages/client/*/src"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "tests"
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "name": "@dsh-external/dsh-file-trace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH Web UI 文件追踪插件：记录模型读取/写入/编辑的文件，会话标题栏一键查看变更列表与逐行 diff（删除红、新增绿、修改蓝）",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./invariant": "./lib/invariant.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-session"
+      ],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1-rc.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-api-session-controller": "link:../.dsh/source/current/packages/api/session-controller",
+    "@deepseek-ai/dsh-client-locale": "link:../.dsh/source/current/packages/client/locale",
+    "@deepseek-ai/dsh-client-ui-chat": "link:../.dsh/source/current/packages/client/ui-chat",
+    "@deepseek-ai/dsh-client-ui-conversation": "link:../.dsh/source/current/packages/client/ui-conversation",
+    "@deepseek-ai/dsh-client-ui-renderer": "link:../.dsh/source/current/packages/client/ui-renderer",
+    "@deepseek-ai/dsh-client-ui-session": "link:../.dsh/source/current/packages/client/ui-session",
+    "@deepseek-ai/dsh-client-ui-slots": "link:../.dsh/source/current/packages/client/ui-slots",
+    "@deepseek-ai/dsh-invariants": "link:../.dsh/source/current/packages/runtime-diagnostics/invariants",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@deepseek-ai/cordis": "link:../.dsh/source/current/vendor/cordis",
+    "jsdom": "^26.0.0",
+    "lightningcss": "^1.32.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.9.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.1"
+  },
+  "license": "BSD-3-Clause"
+}
