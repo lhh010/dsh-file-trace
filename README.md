@@ -69,9 +69,3 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 - 编辑的"完整文件上下文"依赖窗口内更早的**同一文件**写入/读取内容；若无，则仅显示模型提供的 old_string/new_string 片段。
 - 行级 diff；行内（字符级）高亮暂未实现。
 - 中英文 README 一致性记录见 `README.i18n.yaml`。
-
-## 仓库镜像
-
-- `dsh-external/dsh-file-trace`（**private**）
-- `lhh010/dsh-file-trace`（public）
-- `omdsh-dev/dsh-file-trace`（public）

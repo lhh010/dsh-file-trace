@@ -69,9 +69,3 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 - The edit "full-file context" relies on an earlier in-window write/read of the **same file**; otherwise only the model-provided old_string/new_string snippet is shown.
 - Line-level diff only; in-line (character-level) highlighting is not implemented yet.
 - The zh/en bilingual consistency record lives in `README.i18n.yaml`.
-
-## Repository mirrors
-
-- `dsh-external/dsh-file-trace` (**private**)
-- `lhh010/dsh-file-trace` (public)
-- `omdsh-dev/dsh-file-trace` (public)
