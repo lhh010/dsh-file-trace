@@ -82,6 +82,93 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const [diffHeight, setDiffHeight] = useState(340)
   const diffPaneRef = useRef<HTMLDivElement>(null)
 
+  // Floating-window geometry (like dsh-minigames): position by header drag,
+  // size by edge drags; persisted in localStorage.
+  const LS_POS = 'dsh-file-trace:pos'
+  const LS_SIZE = 'dsh-file-trace:size'
+  const [winPos, setWinPos] = useState<{ x: number; y: number }>(() => {
+    try {
+      const saved = window.localStorage.getItem(LS_POS)
+      if (saved !== null) return JSON.parse(saved) as { x: number; y: number }
+    } catch { /* fall through to the default */ }
+    return { x: Math.max(16, window.innerWidth - 576), y: Math.max(16, Math.round(window.innerHeight * 0.12)) }
+  })
+  const [winSize, setWinSize] = useState<{ w: number; h: number }>(() => {
+    try {
+      const saved = window.localStorage.getItem(LS_SIZE)
+      if (saved !== null) return JSON.parse(saved) as { w: number; h: number }
+    } catch { /* fall through to the default */ }
+    return { w: Math.min(560, window.innerWidth - 32), h: Math.min(720, window.innerHeight - 64) }
+  })
+  const posRef = useRef(winPos)
+  posRef.current = winPos
+  const sizeRef = useRef(winSize)
+  sizeRef.current = winSize
+  const saveWin = (key: string, value: unknown): void => {
+    try { window.localStorage.setItem(key, JSON.stringify(value)) } catch { /* storage unavailable */ }
+  }
+
+  /** Drag the floating window by its header; clamped to the viewport. */
+  const startWinDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    const target = e.target as HTMLElement
+    if (target.closest('button') !== null) return
+    e.preventDefault()
+    const startX = e.clientX
+    const startY = e.clientY
+    const start = posRef.current
+    const size = sizeRef.current
+    const onMove = (ev: PointerEvent): void => {
+      const x = Math.min(Math.max(start.x + ev.clientX - startX, 8), Math.max(8, window.innerWidth - size.w - 8))
+      const y = Math.min(Math.max(start.y + ev.clientY - startY, 8), Math.max(8, window.innerHeight - 64))
+      setWinPos({ x, y })
+    }
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      saveWin(LS_POS, posRef.current)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  /** Resize the floating window from the left edge (right edge anchored). */
+  const startWinResizeW = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    const start = sizeRef.current
+    const anchorRight = posRef.current.x + start.w
+    const onMove = (ev: PointerEvent): void => {
+      const w = Math.min(Math.max(anchorRight - ev.clientX, 360), Math.min(window.innerWidth - 16, anchorRight - 8))
+      setWinSize(prev => ({ ...prev, w }))
+      setWinPos(prev => ({ ...prev, x: anchorRight - w }))
+    }
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      saveWin(LS_SIZE, sizeRef.current)
+      saveWin(LS_POS, posRef.current)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  /** Resize the floating window from the bottom edge (top edge anchored). */
+  const startWinResizeH = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = sizeRef.current.h
+    const onMove = (ev: PointerEvent): void => {
+      const h = Math.min(Math.max(startH + ev.clientY - startY, 200), window.innerHeight - posRef.current.y - 8)
+      setWinSize(prev => ({ ...prev, h }))
+    }
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      saveWin(LS_SIZE, sizeRef.current)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
   const onHandleDown = (e: ReactPointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
     const startY = e.clientY
@@ -160,8 +247,28 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         {count > 0 && <span className={css.badge}>{String(count)}</span>}
       </button>
       {open && (
-        <div className={css.drawer} data-file-trace-drawer role="dialog" aria-label={t('title')}>
-          <div className={css.drawerHead}>
+        <div
+          className={css.drawer}
+          data-file-trace-drawer
+          role="dialog"
+          aria-label={t('title')}
+          style={{ left: winPos.x, top: winPos.y, width: winSize.w, height: winSize.h } as CSSProperties}
+        >
+          <div
+            className={css.resizeW}
+            data-ft-resize-w
+            onPointerDown={startWinResizeW}
+            role="separator"
+            aria-orientation="vertical"
+          />
+          <div
+            className={css.resizeH}
+            data-ft-resize-h
+            onPointerDown={startWinResizeH}
+            role="separator"
+            aria-orientation="horizontal"
+          />
+          <div className={css.drawerHead} onPointerDown={startWinDrag}>
             <span className={css.drawerTitle}>{t('title')}</span>
             <span className={css.drawerMeta}>
               {String(groups.size)} {t('files')} · {String(count)} ops

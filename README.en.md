@@ -12,7 +12,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 - **Edit view (hunk context folding)**: reconstructs the full file from an earlier in-window write/read, keeps **±3 lines of context** around the change, and folds unchanged large regions into a **"… N lines"** run (click to expand/collapse).
 - **Long-line folding**: a single line over 120 chars folds to an ellipsis; click to expand/collapse.
 - **Terminal-style diff**: monospace, line-number gutter, and **red (deleted) / green (added) / blue (modified)** font colors (backgrounds are only a softened tint for readability).
-- **Resizable pane**: a drag handle above the diff pane lets you adjust its height.
+- **Floating window (draggable / resizable)**: the drawer is its own floating window — drag the header to move it, drag the left/bottom edges to resize (position and size persist in localStorage); a separate handle above the diff pane adjusts the list/diff split.
 - **Compatibility self-diagnosis**: the apply body probes the client APIs it needs; if absent it renders a remediation banner instead of crashing, pointing to an upgrade path.
 
 ## How it works

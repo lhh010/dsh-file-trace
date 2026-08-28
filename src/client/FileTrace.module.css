@@ -8,8 +8,11 @@
 .trigger:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .badge { min-width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-bg-base); font-size: 11px; padding: 0 5px; }
 
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 1200; width: min(560px, 92vw); display: flex; flex-direction: column; background: var(--dsw-alias-bg-base); border-left: 1px solid var(--dsw-alias-border-l1); box-shadow: var(--dsw-shadow-lv3); font-size: 13px; overflow: hidden; }
-.drawerHead { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.drawer { position: fixed; z-index: 1200; display: flex; flex-direction: column; background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l1); border-radius: 10px; box-shadow: var(--dsw-shadow-lv3); font-size: 13px; overflow: hidden; }
+.drawerHead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); cursor: move; user-select: none; touch-action: none; }
+.resizeW { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; touch-action: none; }
+.resizeH { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; cursor: ns-resize; z-index: 2; touch-action: none; }
+.resizeW:hover, .resizeH:hover { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 35%, transparent); }
 .drawerTitle { font-weight: 600; color: var(--dsw-alias-label-primary); }
 .drawerMeta { flex: 1; color: var(--dsw-alias-label-caption); }
 .close { border: 0; border-radius: 7px; background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; cursor: pointer; padding: 2px 8px; }
