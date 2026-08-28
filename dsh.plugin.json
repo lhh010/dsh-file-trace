@@ -1,6 +1,6 @@
 {
   "id": "@dsh-external/dsh-file-trace",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "./lib/index.js",
   "description": "DSH Web UI 文件追踪插件：记录模型读取/写入/编辑的文件，会话标题栏一键查看变更列表与逐行 diff",
   "client": {

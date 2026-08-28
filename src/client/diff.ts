@@ -107,6 +107,9 @@ export type DiffSegment = DiffHunk | DiffFold
 /** Context window (rows around a change) kept visible in a hunk. */
 export const HUNK_CONTEXT = 3
 
+/** Folded context runs shorter than this are shown directly, not collapsed. */
+export const MIN_FOLD = 3
+
 /**
  * Group a line diff into hunks and folded context runs. Consecutive changes
  * whose gap fits within the context window merge into one hunk; unchanged

@@ -5,14 +5,33 @@
  * a self-contained fixed-position drawer listing every touched file with a
  * line-diff view (del red / add green / mod blue via --dsw state tokens).
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react'
+import { Component, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { extractFileOps, groupByFile, knownContentBefore, parseReadLines, type FileOp } from './file-ops.ts'
-import { diffLines, formatBytes, buildDiffSegments, type DiffRow } from './diff.ts'
+import { renderCompatBanner } from './compat.ts'
+import { diffLines, formatBytes, buildDiffSegments, MIN_FOLD, type DiffRow } from './diff.ts'
 import css from './FileTrace.module.css'
+
+/** Renders the remediation banner once when the drawer subtree throws. */
+class DrawerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false }
+  static getDerivedStateFromError(): { failed: boolean } { return { failed: true } }
+  override componentDidCatch(error: unknown): void {
+    renderCompatBanner(
+      'dsh-file-trace',
+      '@dsh-external/dsh-file-trace',
+      `渲染出错：${String((error as Error)?.message ?? error)}`,
+      ['请将插件更新到适配当前 DSH 的版本；', '或在插件目录执行 pnpm run build 后刷新页面。'],
+    )
+  }
+  override render(): ReactNode {
+    if (this.state.failed) return null
+    return this.props.children
+  }
+}
 
 /** Long diff lines fold to one ellipsized row; the threshold is the char count. */
 const FOLD_THRESHOLD = 120
@@ -127,7 +146,8 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   }
 
   return (
-    <>
+    <DrawerErrorBoundary>
+      <>
       <button
         type="button"
         className={css.trigger}
@@ -204,7 +224,13 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                       && <div className={css.priorUnknown}>{t('diff.priorUnknown')}</div>}
                     {segments.map((segment, segIndex) => {
                       if (segment.kind === 'fold') {
+                        // Runs shorter than MIN_FOLD are shown directly (no
+                        // collapse) — only >= MIN_FOLD context runs fold.
+                        const shouldFold = segment.rows.length >= MIN_FOLD
                         const isExpanded = expandedFolds.has(segIndex)
+                        if (!shouldFold) {
+                          return segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`))
+                        }
                         return (
                           <div
                             key={`fold-${String(segIndex)}`}
@@ -237,6 +263,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
           )}
         </div>
       )}
-    </>
+      </>
+    </DrawerErrorBoundary>
   )
 }
