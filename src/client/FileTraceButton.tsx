@@ -315,13 +315,19 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
               </div>
               {selected.op.kind === 'read'
                 ? (
-                  <div className={css.readContent} data-file-trace-read>
-                    {(selected.op.read === undefined ? [] : parseReadLines(selected.op.read)).map((line) => (
-                      <div key={String(line.line)} className={css.readRow}>
-                        <span className={css.lineNo}>{String(line.line)}</span>
-                        <span className={css.text}>{line.text}</span>
-                      </div>
-                    ))}
+                  <div className={css.readContent} data-file-trace-read data-error={selected.op.isError ? 'true' : undefined}>
+                    {selected.op.isError
+                      ? (
+                        <div className={css.readError} role="alert">
+                          {selected.op.read ?? t('error')}
+                        </div>
+                      )
+                      : (selected.op.read === undefined ? [] : parseReadLines(selected.op.read)).map((line) => (
+                        <div key={String(line.line)} className={css.readRow}>
+                          <span className={css.lineNo}>{String(line.line)}</span>
+                          <span className={css.text}>{line.text}</span>
+                        </div>
+                      ))}
                   </div>
                 )
                 : (
