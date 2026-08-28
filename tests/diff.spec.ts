@@ -1,6 +1,6 @@
 /** diff engine behavior: LCS correctness, rewrite pairing, empty sides. */
 import { describe, expect, it } from 'vitest'
-import { diffLines, formatBytes } from '../src/client/diff.ts'
+import { diffLines, formatBytes, buildDiffSegments, type DiffSegment } from '../src/client/diff.ts'
 
 describe('diffLines', () => {
   it('marks identical texts as all context', () => {
@@ -39,6 +39,42 @@ describe('diffLines', () => {
   it('diffs to nothing as all-deleted', () => {
     const rows = diffLines('x\ny', '')
     expect(rows.map(r => r.kind)).toEqual(['del', 'del'])
+  })
+})
+
+describe('buildDiffSegments', () => {
+  it('folds unchanged context and keeps a window around the change', () => {
+    // 12 context lines, a change at index 6, then 8 context lines.
+    const context = (n: number) => [{ kind: 'context' as const, oldLine: n + 1, newLine: n + 1, text: 'c' + String(n) }]
+    const before = Array.from({ length: 6 }, (_, i) => context(i)).flat()
+    const change = [{ kind: 'mod' as const, oldLine: 7, newLine: 7, text: 'CHANGE' }]
+    const after = Array.from({ length: 8 }, (_, i) => context(i + 7)).flat()
+    const rows = [...before, ...change, ...after]
+    const segments = buildDiffSegments(rows, 3)
+    // Expect: leading fold, a hunk (3 context + change + 3 context), trailing fold.
+    expect(segments.map(s => s.kind)).toEqual(['fold', 'hunk', 'fold'])
+    const hunk = segments[1] as Extract<DiffSegment, { kind: 'hunk' }>
+    expect(hunk.rows).toHaveLength(7) // 3 + change + 3
+    expect(hunk.rows[3]!.text).toBe('CHANGE')
+    const leading = segments[0] as Extract<DiffSegment, { kind: 'fold' }>
+    expect(leading.rows).toHaveLength(3) // first 3 context rows (row 4,5,6 stay as hunk prefix)
+    const trailing = segments[2] as Extract<DiffSegment, { kind: 'fold' }>
+    expect(trailing.rows).toHaveLength(5) // remaining after hunk suffix
+  })
+
+  it('collapses an all-context diff into one fold', () => {
+    const rows = [{ kind: 'context' as const, oldLine: 1, newLine: 1, text: 'a' }, { kind: 'context' as const, oldLine: 2, newLine: 2, text: 'b' }]
+    const segs = buildDiffSegments(rows, 3)
+    expect(segs).toHaveLength(1)
+    expect(segs[0]!.kind).toBe('fold')
+    expect((segs[0] as Extract<DiffSegment, { kind: 'fold' }>).rows).toHaveLength(2)
+  })
+
+  it('leaves an all-change diff as a single hunk', () => {
+    const rows = [{ kind: 'add' as const, newLine: 1, text: 'a' }, { kind: 'add' as const, newLine: 2, text: 'b' }]
+    const segs = buildDiffSegments(rows, 3)
+    expect(segs[0]!.kind).toBe('hunk')
+    expect((segs[0] as Extract<DiffSegment, { kind: 'hunk' }>).rows).toHaveLength(2)
   })
 })
 

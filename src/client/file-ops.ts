@@ -28,6 +28,8 @@ export interface FileOp {
   readonly edit?: { oldString: string; newString: string }
   /** For 'write': the full new content. */
   readonly content?: string
+  /** For 'read': the file content returned by the tool result. */
+  readonly read?: string
 }
 
 /** Tool names mapped to each op kind; unknown names are ignored. */
@@ -90,8 +92,20 @@ function opOfResult(node: ToolResultNode): FileOp | undefined {
       : base
   }
   if (kind === 'write') {
-    const content = args.content
-    return typeof content === 'string' ? { ...base, content } : base
+    const fromArgs = args.content
+    // Fall back to the result content block when the args payload omits it.
+    const fromResult = node.content
+      .map((block) => ('text' in block && typeof block.text === 'string' ? block.text : ''))
+      .join('')
+    const content = typeof fromArgs === 'string' && fromArgs.length > 0 ? fromArgs : fromResult
+    return content.length > 0 ? { ...base, content } : base
+  }
+  if (kind === 'read') {
+    // The read tool returns the file content as text blocks; join them.
+    const text = node.content
+      .map((block) => ('text' in block && typeof block.text === 'string' ? block.text : ''))
+      .join('')
+    return text.length > 0 ? { ...base, read: text } : base
   }
   return base
 }
@@ -118,17 +132,28 @@ export function extractFileOps(
   runningCalls: readonly RunningToolCall[],
 ): FileOp[] {
   const ops: FileOp[] = []
+  // File tools dispatched through a host tool such as run_code are recorded as
+  // *child* calls (subCalls) nested under the parent tool-result node, so the
+  // collector recurses: top-level running calls and every tool-result node
+  // (whether directly visible or a descendant of a parent call).
   for (const call of runningCalls) {
-    const op = opOfRunning(call)
-    if (op !== undefined) ops.push(op)
+    collectFromBlocks([call], ops)
   }
   for (const node of nodes) {
     if (node.kind !== 'tool-result') continue
-    const op = opOfResult(node)
-    if (op !== undefined) ops.push(op)
+    collectFromBlocks([node], ops)
   }
   ops.sort((a, b) => b.time - a.time)
   return ops
+}
+
+/** Recursively collect file operations from a block list (parent or descendant). */
+function collectFromBlocks(blocks: readonly (RunningToolCall | ToolResultNode)[], out: FileOp[]): void {
+  for (const block of blocks) {
+    const op = 'call' in block ? opOfResult(block) : opOfRunning(block)
+    if (op !== undefined) out.push(op)
+    if (block.subCalls.length > 0) collectFromBlocks(block.subCalls, out)
+  }
 }
 
 /**
@@ -172,3 +197,53 @@ export function knownContentBefore(ops: readonly FileOp[], path: string, before:
   }
   return undefined
 }
+
+/**
+ * Strip the DSH read-tool response envelope from a read result so the panel
+ * shows only the file content: drop the <path>/<type>/<content> wrapper, the
+ * "(Showing lines ...)" note, and the per-line "<n>: " number prefixes. Falls
+ * back to the raw text when no <content> section is present.
+ */
+export function parseReadContent(raw: string): string {
+  const contentMatch = raw.match(/<content>([\s\S]*?)<\/content>/)
+  const body = contentMatch ? contentMatch[1]! : raw
+  return body
+    .split('\n')
+    .filter((line) => !/^\s*\(Showing lines .*\)\s*$/.test(line))
+    .map((line) => line.replace(/^\s*\d+:\s/, ''))
+    .join('\n')
+    .replace(/\n+$/, '')
+}
+
+/** One parsed read line: the file's own line number and its content text. */
+export interface ReadLine { readonly line: number; readonly text: string }
+
+/**
+ * Parse a DSH read result into file lines with their real line numbers.
+ * Drops the <content> envelope and "(Showing lines ...)" note; recovers the
+ * "<n>: " prefix as the line number, falling back to sequential counting when
+ * a line has no prefix.
+ * @param raw - the read tool result text.
+ * @returns ordered file lines.
+ */
+export function parseReadLines(raw: string): ReadLine[] {
+  const contentMatch = raw.match(/<content>([\s\S]*?)<\/content>/)
+  const body = contentMatch ? contentMatch[1]! : raw
+  const result: ReadLine[] = []
+  let fallback = 1
+  for (const line of body.split('\n')) {
+    if (/^\s*\(Showing lines .*\)\s*$/.test(line)) continue
+    if (line.length === 0) continue
+    const match = line.match(/^\s*(\d+):\s?(.*)$/)
+    if (match !== null) {
+      result.push({ line: Number(match[1]), text: match[2] ?? '' })
+      fallback = Number(match[1]) + 1
+    } else {
+      result.push({ line: fallback, text: line })
+      fallback += 1
+    }
+  }
+  return result
+}
+
+

@@ -1,0 +1,4 @@
+trace demo line 1: initial content
+trace demo line 2: MODIFIED by edit tool
+trace demo line 3.5: INSERTED by edit tool
+trace demo line 4: initial content

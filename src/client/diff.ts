@@ -87,6 +87,103 @@ export function diffLines(oldText: string, newText: string): DiffRow[] {
   return rows
 }
 
+
+/** One rendered hunk: change rows plus the surrounding context window. */
+export interface DiffHunk { readonly kind: 'hunk'; readonly rows: readonly DiffRow[] }
+
+/** One collapsed run of unchanged context rows (the "… n 行" fold). */
+export interface DiffFold {
+  readonly kind: 'fold'
+  /** The context rows this fold hides; re-render them when expanded. */
+  readonly rows: readonly DiffRow[]
+  readonly oldStart: number
+  readonly oldEnd: number
+  readonly newStart: number
+  readonly newEnd: number
+}
+
+export type DiffSegment = DiffHunk | DiffFold
+
+/** Context window (rows around a change) kept visible in a hunk. */
+export const HUNK_CONTEXT = 3
+
+/**
+ * Group a line diff into hunks and folded context runs. Consecutive changes
+ * whose gap fits within the context window merge into one hunk; unchanged
+ * regions between hunks (and any surrounding the whole diff) become fold
+ * segments that default collapsed. This yields the file-hunk presentation
+ * familiar from terminal diffs (Claude Code / git hunk headers).
+ * @param rows - the flat diff rows.
+ * @param context - how many unchanged rows around a change stay visible.
+ * @returns ordered segments (hunks and folds).
+ */
+export function buildDiffSegments(rows: readonly DiffRow[], context = HUNK_CONTEXT): DiffSegment[] {
+  if (rows.length === 0) return []
+  const changeIndexes = rows.flatMap((row, index) => (row.kind === 'context' ? [] : [index]))
+  if (changeIndexes.length === 0) {
+    // Whole diff is unchanged (or a pure no-op): hide it all behind one fold.
+    return [{ kind: 'fold', rows: [...rows], oldStart: 1, oldEnd: rows.length, newStart: 1, newEnd: rows.length }]
+  }
+  // Cluster changes into runs whose gaps fit within 2*context+1 rows.
+  const hunks: { start: number; end: number }[] = []
+  for (const ci of changeIndexes) {
+    const start = Math.max(0, ci - context)
+    const end = Math.min(rows.length - 1, ci + context)
+    const last = hunks[hunks.length - 1]
+    if (last !== undefined && start <= last.end + 1) {
+      last.end = Math.max(last.end, end)
+    } else {
+      hunks.push({ start, end })
+    }
+  }
+  const segments: DiffSegment[] = []
+  let cursor = 0
+  for (const hunk of hunks) {
+    if (hunk.start > cursor) {
+      const foldRows = rows.slice(cursor, hunk.start)
+      segments.push({
+        kind: 'fold',
+        rows: foldRows,
+        oldStart: firstOldLine(foldRows) ?? (foldRows.length === 0 ? cursor + 1 : cursor + 1),
+        oldEnd: lastOldLine(foldRows) ?? 0,
+        newStart: firstNewLine(foldRows) ?? (foldRows.length === 0 ? cursor + 1 : cursor + 1),
+        newEnd: lastNewLine(foldRows) ?? 0,
+      })
+    }
+    segments.push({ kind: 'hunk', rows: rows.slice(hunk.start, hunk.end + 1) })
+    cursor = hunk.end + 1
+  }
+  if (cursor < rows.length) {
+    const foldRows = rows.slice(cursor)
+    segments.push({
+      kind: 'fold',
+      rows: foldRows,
+      oldStart: firstOldLine(foldRows) ?? cursor + 1,
+      oldEnd: lastOldLine(foldRows) ?? 0,
+      newStart: firstNewLine(foldRows) ?? cursor + 1,
+      newEnd: lastNewLine(foldRows) ?? 0,
+    })
+  }
+  return segments
+}
+
+function firstOldLine(rows: readonly DiffRow[]): number | undefined {
+  for (const row of rows) if (row.oldLine !== undefined) return row.oldLine
+  return undefined
+}
+function lastOldLine(rows: readonly DiffRow[]): number | undefined {
+  for (let i = rows.length - 1; i >= 0; i -= 1) if (rows[i]!.oldLine !== undefined) return rows[i]!.oldLine
+  return undefined
+}
+function firstNewLine(rows: readonly DiffRow[]): number | undefined {
+  for (const row of rows) if (row.newLine !== undefined) return row.newLine
+  return undefined
+}
+function lastNewLine(rows: readonly DiffRow[]): number | undefined {
+  for (let i = rows.length - 1; i >= 0; i -= 1) if (rows[i]!.newLine !== undefined) return rows[i]!.newLine
+  return undefined
+}
+
 /** Human byte count for the panel meta row. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${String(bytes)} B`

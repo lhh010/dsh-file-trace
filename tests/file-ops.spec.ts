@@ -37,6 +37,21 @@ describe('extractFileOps', () => {
     expect(ops).toHaveLength(0)
   })
 
+  it('recurses into parent-call subCalls (run_code-style dispatch)', () => {
+    const innerEdit = result('inner1', 'edit', { file_path: 'a.ts', old_string: 'x', new_string: 'y' }, 1)
+    const parent = {
+      kind: 'tool-result' as const,
+      seq: 2, time: 2, callId: 'p1',
+      call: { name: 'run_code', argsRaw: '{}' },
+      callTime: 2, content: [], isError: false,
+      subCalls: [innerEdit],
+    }
+    const ops = extractFileOps([parent as unknown as ToolResultNode], [])
+    expect(ops).toHaveLength(1)
+    expect(ops[0]!.kind).toBe('edit')
+    expect(ops[0]!.path).toBe('a.ts')
+  })
+
   it('carries error and running flags', () => {
     const ops = extractFileOps([result('e', 'write', { file_path: 'a', content: 'z' }, 5, true)], [])
     expect(ops[0]!.isError).toBe(true)

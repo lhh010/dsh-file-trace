@@ -1,161 +1,72 @@
-/* File-trace trigger + drawer. Semantic --dsw-* tokens only; diff tinting
-   rides the state aliases: error (removed), success (added), business
-   (rewritten), with secondary backgrounds for row fills. */
+/* File-trace trigger + drawer. Semantic --dsw-* tokens only. The diff view is
+   terminal-style (Claude Code-like): monospace, colored +/- prefix and line
+   text (red del / green add / blue mod), dim line-number gutters, dark
+   terminal surface, and a draggable divider above it. */
 
-.trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--dsw-alias-border-l1);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font: inherit;
-  font-size: 12px;
-  line-height: 24px;
-  padding: 0 8px;
-  cursor: pointer;
-}
+.trigger { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 8px; background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; font-size: 12px; line-height: 24px; padding: 0 8px; cursor: pointer; }
+.trigger:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+.badge { min-width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-bg-base); font-size: 11px; padding: 0 5px; }
 
-.trigger:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
-.badge {
-  min-width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  background: var(--dsw-alias-state-business-primary);
-  color: var(--dsw-alias-bg-base);
-  font-size: 11px;
-  padding: 0 5px;
-}
-
-.drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1200;
-  width: min(560px, 92vw);
-  display: flex;
-  flex-direction: column;
-  background: var(--dsw-alias-bg-base);
-  border-left: 1px solid var(--dsw-alias-border-l1);
-  box-shadow: var(--dsw-shadow-lv3);
-  font-size: 13px;
-}
-
-.drawerHead {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--dsw-alias-border-l1);
-}
-
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 1200; width: min(560px, 92vw); display: flex; flex-direction: column; background: var(--dsw-alias-bg-base); border-left: 1px solid var(--dsw-alias-border-l1); box-shadow: var(--dsw-shadow-lv3); font-size: 13px; overflow: hidden; }
+.drawerHead { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
 .drawerTitle { font-weight: 600; color: var(--dsw-alias-label-primary); }
 .drawerMeta { flex: 1; color: var(--dsw-alias-label-caption); }
-
-.close {
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font: inherit;
-  cursor: pointer;
-  padding: 2px 8px;
-}
+.close { border: 0; border-radius: 7px; background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; cursor: pointer; padding: 2px 8px; }
 .close:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 
-.drawerBody { flex: 1; overflow-y: auto; padding: 8px 10px; }
-
+.drawerBody { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px; }
 .empty { color: var(--dsw-alias-label-caption); padding: 24px 8px; text-align: center; }
 
 .fileGroup { margin-bottom: 10px; }
-
-.filePath {
-  display: block;
-  color: var(--dsw-alias-label-secondary);
-  font-family: var(--dsw-mono-font, ui-monospace, monospace);
-  font-size: 12px;
-  padding: 2px 4px;
-  word-break: break-all;
-}
-
-.opRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: inherit;
-  font-size: 12px;
-  padding: 4px 6px;
-  cursor: pointer;
-  text-align: left;
-}
+.filePath { display: block; color: var(--dsw-alias-label-secondary); font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; padding: 2px 4px; word-break: break-all; }
+.opRow { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 8px; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 12px; padding: 4px 6px; cursor: pointer; text-align: left; }
 .opRow:hover { background: var(--dsw-alias-interactive-bg-hover); }
-
-.opKind {
-  border-radius: 6px;
-  font-size: 11px;
-  line-height: 18px;
-  padding: 0 6px;
-  background: var(--dsw-alias-interactive-bg-muted, var(--dsw-alias-border-l1));
-}
-.opKind[data-kind='read'] { color: var(--dsw-alias-label-secondary); }
+.opKind { border-radius: 6px; font-size: 11px; line-height: 18px; padding: 0 6px; background: var(--dsw-alias-interactive-bg-muted, var(--dsw-alias-border-l1)); color: var(--dsw-alias-label-secondary); }
 .opKind[data-kind='write'] { color: var(--dsw-alias-state-success-primary); }
 .opKind[data-kind='edit'] { color: var(--dsw-alias-state-business-primary); }
-
 .opTime { color: var(--dsw-alias-label-caption); font-size: 11px; }
 .opFlag { color: var(--dsw-alias-state-business-primary); font-size: 11px; }
 .opFlagError { color: var(--dsw-alias-state-error-primary); font-size: 11px; }
 .opSize { margin-left: auto; color: var(--dsw-alias-label-caption); font-size: 11px; }
 
-.diffPane {
-  border-top: 1px solid var(--dsw-alias-border-l1);
-  max-height: 55%;
-  display: flex;
-  flex-direction: column;
-}
+.diffPane { border-top: 1px solid var(--dsw-alias-border-l1); display: flex; flex-direction: column; flex: none; min-height: 0; }
+.diffHead { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
+.diffPath { flex: 1; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; word-break: break-all; color: var(--dsw-alias-label-primary); }
+.diffKind[data-kind='write'] { color: var(--dsw-alias-state-success-primary); }
+.diffKind[data-kind='edit'] { color: var(--dsw-alias-state-business-primary); }
 
-.diffHead {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--dsw-alias-border-l1);
-}
-.diffPath { flex: 1; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; word-break: break-all; }
+.dragHandle { flex: none; height: 8px; cursor: ns-resize; position: relative; background: var(--dsw-alias-bg-base); }
+.dragHandle::after { content: ''; position: absolute; left: calc(50% - 24px); top: 3px; width: 48px; height: 2px; border-radius: 1px; background: var(--dsw-alias-border-l1); }
+.dragHandle:hover::after { background: var(--dsw-alias-state-business-primary); }
 
-.diffRows { overflow-y: auto; padding: 4px 0 10px; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; }
+/* Terminal surface behind the diff / read rows: the theme's own base panel
+   color (already dark in dark themes), so the state-primary glyph/text colors
+   keep their designed contrast on every theme. */
+.diffRows, .readContent { background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); }
 
-.diffRow { display: flex; gap: 6px; padding: 0 10px; line-height: 20px; white-space: pre-wrap; word-break: break-all; }
+.diffRows { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 0 10px; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; }
+.diffRow { display: flex; align-items: flex-start; gap: 6px; padding: 0 10px; line-height: 20px; cursor: default; }
+.diffRow[data-folded='true'] { cursor: pointer; }
+.lineNo { flex: none; width: 3em; color: var(--dsw-alias-label-caption); text-align: right; user-select: none; }
+.sign { flex: none; width: 1em; text-align: center; user-select: none; font-weight: 700; }
 
-.lineNo {
-  flex: none;
-  width: 3em;
-  color: var(--dsw-alias-label-caption);
-  text-align: right;
-  user-select: none;
-}
-.marker { flex: none; width: 1em; user-select: none; }
-.text { flex: 1; }
-
-.diffRow[data-kind='del'] .marker, .diffRow[data-kind='del'] .text { color: var(--dsw-alias-state-error-primary); }
-.diffRow[data-kind='del'] { background: var(--dsw-alias-state-error-secondary); }
-.diffRow[data-kind='add'] .marker, .diffRow[data-kind='add'] .text { color: var(--dsw-alias-state-success-primary); }
-.diffRow[data-kind='add'] { background: var(--dsw-alias-state-success-secondary); }
-.diffRow[data-kind='mod'] .marker, .diffRow[data-kind='mod'] .text { color: var(--dsw-alias-state-business-primary); }
-.diffRow[data-kind='mod'] { background: var(--dsw-alias-state-business-tertiary); }
+.diffRow[data-kind='del'] .sign, .diffRow[data-kind='del'] .text { color: var(--dsw-alias-state-error-primary); }
+.diffRow[data-kind='add'] .sign, .diffRow[data-kind='add'] .text { color: var(--dsw-alias-state-success-primary); }
+.diffRow[data-kind='mod'] .sign, .diffRow[data-kind='mod'] .text { color: var(--dsw-alias-state-business-primary); }
+.diffRow[data-kind='context'] .sign, .diffRow[data-kind='context'] .text { color: var(--dsw-alias-label-secondary); }
 .diffRow[data-kind='context'] { color: var(--dsw-alias-label-secondary); }
 
-.priorUnknown { color: var(--dsw-alias-label-caption); font-size: 11px; padding: 4px 14px; }
+.diffRow .text { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
+.diffRow[data-folded='true'] .text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.readContent { flex: 1; min-height: 0; margin: 0; padding: 6px 0 10px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; line-height: 1.55; }
+.readRow { display: flex; gap: 6px; padding: 0 10px; line-height: 20px; color: var(--dsw-alias-label-primary); }
+
+.priorUnknown { color: var(--dsw-alias-label-caption); font-size: 11px; padding: 4px 14px; background: var(--dsw-alias-bg-base); }
+
+/* Hunk-fold row: a collapsed context run rendered as a clickable ellipsis. */
+.foldRow { padding: 0 10px; cursor: pointer; }
+.foldRow:hover { background: var(--dsw-alias-interactive-bg-hover); }
+.foldMarker { display: inline-block; padding: 2px 8px; border-radius: 6px; margin: 2px 0; color: var(--dsw-alias-label-caption); background: var(--dsw-alias-interactive-bg-muted, var(--dsw-alias-border-l1)); font-style: italic; }
+.foldRow[data-expanded='true'] { cursor: default; }
+.foldRow[data-expanded='true'] .foldMarker { display: none; }

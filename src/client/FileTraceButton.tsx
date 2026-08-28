@@ -5,26 +5,43 @@
  * a self-contained fixed-position drawer listing every touched file with a
  * line-diff view (del red / add green / mod blue via --dsw state tokens).
  */
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { extractFileOps, groupByFile, knownContentBefore, type FileOp } from './file-ops.ts'
-import { diffLines, formatBytes, type DiffRow } from './diff.ts'
+import { extractFileOps, groupByFile, knownContentBefore, parseReadLines, type FileOp } from './file-ops.ts'
+import { diffLines, formatBytes, buildDiffSegments, type DiffRow } from './diff.ts'
 import css from './FileTrace.module.css'
+
+/** Long diff lines fold to one ellipsized row; the threshold is the char count. */
+const FOLD_THRESHOLD = 120
 
 /** Trigger props: session standard kit + locale seat. */
 export type FileTraceButtonProps = PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'fileTrace'>
 
-/** Diff material for one operation, computed at open time. */
+/** Diff material for one operation, computed at open time.
+ * For an edit the model's payload is only the changed snippet, so a hunched
+ * diff needs the file's prior full content: when known (from an earlier
+ * write/read in the window) apply the replacement to reconstruct the new full
+ * content and diff whole files; otherwise fall back to the snippet itself. */
 function diffOf(op: FileOp, prior: string | undefined): readonly DiffRow[] {
   if (op.kind === 'read') return []
   if (op.kind === 'edit' && op.edit !== undefined) {
-    return diffLines(op.edit.oldString, op.edit.newString)
+    const { oldString, newString } = op.edit
+    if (prior !== undefined && prior.includes(oldString)) {
+      const newFile = prior.replace(oldString, newString)
+      return diffLines(prior, newFile)
+    }
+    return diffLines(oldString, newString)
   }
-  if (op.kind === 'write' && op.content !== undefined) {
-    return diffLines(prior ?? '', op.content)
+  if (op.kind === 'write') {
+    const content = op.content ?? ''
+    // A write is an authoritative full-content op: when the prior state is
+    // unknown or identical to the written content, render it as all-added
+    // (every line a green +) rather than a no-op context list.
+    const old = prior !== undefined && prior !== content ? prior : undefined
+    return diffLines(old ?? '', content)
   }
   return []
 }
@@ -38,6 +55,28 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const groups = useMemo(() => groupByFile(ops), [ops])
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<{ path: string; op: FileOp } | null>(null)
+  // Long diff lines fold to one ellipsized row; the set holds expanded row keys.
+  const [expandedLines, setExpandedLines] = useState<ReadonlySet<string>>(new Set())
+  // Hunk-fold segments expanded by index; default collapsed.
+  const [expandedFolds, setExpandedFolds] = useState<ReadonlySet<number>>(new Set())
+  // Bottom diff pane height in px; drag the handle to resize (min/max clamp).
+  const [diffHeight, setDiffHeight] = useState(340)
+  const diffPaneRef = useRef<HTMLDivElement>(null)
+
+  const onHandleDown = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = diffHeight
+    const onMove = (ev: PointerEvent): void => {
+      setDiffHeight(Math.min(Math.max(startH + (startY - ev.clientY), 140), Math.round(window.innerHeight * 0.85)))
+    }
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
 
   // Escape closes the drawer, mirroring platform dialog behavior.
   useEffect(() => {
@@ -53,6 +92,39 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     () => selectedOp === undefined ? [] : diffOf(selectedOp, knownContentBefore(ops, selected?.path ?? '', selectedOp)),
     [selectedOp, selected?.path, ops],
   )
+  const segments = useMemo(() => buildDiffSegments(diffRows), [diffRows])
+  // Reset folding when selecting a different operation (the row indexes change).
+  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()) }, [selectedOp])
+
+  // One diff row: colored sign + text, with the long-line fold toggle.
+  const renderDiffRow = (row: DiffRow, rowKey: string): ReactElement => {
+    const isLong = row.text.length > FOLD_THRESHOLD
+    const isFolded = isLong && !expandedLines.has(rowKey)
+    return (
+      <div
+        key={rowKey}
+        className={css.diffRow}
+        data-kind={row.kind}
+        data-folded={isFolded ? 'true' : undefined}
+        onClick={isLong ? () => {
+          setExpandedLines(prev => {
+            const next = new Set(prev)
+            if (next.has(rowKey)) next.delete(rowKey)
+            else next.add(rowKey)
+            return next
+          })
+        } : undefined}
+        title={isFolded ? row.text : undefined}
+      >
+        <span className={css.lineNo}>{row.oldLine !== undefined ? String(row.oldLine) : ''}</span>
+        <span className={css.lineNo}>{row.newLine !== undefined ? String(row.newLine) : ''}</span>
+        <span className={css.sign} aria-label={t(`diff.${row.kind}` as never)}>
+          {row.kind === 'del' ? '-' : row.kind === 'add' ? '+' : row.kind === 'mod' ? '~' : ' '}
+        </span>
+        <span className={css.text} data-folded={isFolded ? 'true' : undefined}>{row.text}</span>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -105,7 +177,8 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
             ))}
           </div>
           {selected !== null && (
-            <div className={css.diffPane} data-file-trace-diff>
+            <div className={css.diffPane} data-file-trace-diff style={{ height: diffHeight }}>
+              <div className={css.dragHandle} onPointerDown={onHandleDown} role="separator" aria-orientation="horizontal" aria-label="drag to resize" />
               <div className={css.diffHead}>
                 <span className={css.diffPath}>{selected.path}</span>
                 <span className={css.diffKind} data-kind={selected.op.kind}>
@@ -113,21 +186,53 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                 </span>
                 <button type="button" className={css.close} onClick={() => { setSelected(null) }}>×</button>
               </div>
-              <div className={css.diffRows}>
-                {selected.op.kind === 'write'
-                  && knownContentBefore(ops, selected.path, selected.op) === undefined
-                  && <div className={css.priorUnknown}>{t('diff.priorUnknown')}</div>}
-                {diffRows.map((row, index) => (
-                  <div key={String(index)} className={css.diffRow} data-kind={row.kind}>
-                    <span className={css.lineNo}>{row.oldLine !== undefined ? String(row.oldLine) : ''}</span>
-                    <span className={css.lineNo}>{row.newLine !== undefined ? String(row.newLine) : ''}</span>
-                    <span className={css.marker} aria-label={t(`diff.${row.kind}` as never)}>
-                      {row.kind === 'del' ? '-' : row.kind === 'add' ? '+' : row.kind === 'mod' ? '~' : ' '}
-                    </span>
-                    <span className={css.text}>{row.text}</span>
+              {selected.op.kind === 'read'
+                ? (
+                  <div className={css.readContent} data-file-trace-read>
+                    {(selected.op.read === undefined ? [] : parseReadLines(selected.op.read)).map((line) => (
+                      <div key={String(line.line)} className={css.readRow}>
+                        <span className={css.lineNo}>{String(line.line)}</span>
+                        <span className={css.text}>{line.text}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )
+                : (
+                  <div className={css.diffRows}>
+                    {selected.op.kind === 'write'
+                      && knownContentBefore(ops, selected.path, selected.op) === undefined
+                      && <div className={css.priorUnknown}>{t('diff.priorUnknown')}</div>}
+                    {segments.map((segment, segIndex) => {
+                      if (segment.kind === 'fold') {
+                        const isExpanded = expandedFolds.has(segIndex)
+                        return (
+                          <div
+                            key={`fold-${String(segIndex)}`}
+                            className={css.foldRow}
+                            data-expanded={isExpanded ? 'true' : undefined}
+                            onClick={() => {
+                              setExpandedFolds(prev => {
+                                const next = new Set(prev)
+                                if (next.has(segIndex)) next.delete(segIndex)
+                                else next.add(segIndex)
+                                return next
+                              })
+                            }}
+                          >
+                            {isExpanded
+                              ? segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`))
+                              : (
+                                <span className={css.foldMarker} title={`${t('diff.context')} ${segment.oldStart}–${segment.oldEnd} · ${segment.newStart}–${segment.newEnd}`}>
+                                  {t('diff.fold', { count: String(segment.rows.length) })}
+                                </span>
+                              )}
+                          </div>
+                        )
+                      }
+                      return segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`))
+                    })}
+                  </div>
+                )}
             </div>
           )}
         </div>
