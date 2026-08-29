@@ -108,11 +108,34 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     try { window.localStorage.setItem(key, JSON.stringify(value)) } catch { /* storage unavailable */ }
   }
 
-  /** Drag the floating window by its header; clamped to the viewport. */
+  /** Right-edge docking: released near the right edge, the window snaps into
+ * a full-height right sidebar; dragging the header undocks it again. */
+  const LS_DOCK = 'dsh-file-trace:dock'
+  const SNAP_PX = 24
+  const [docked, setDocked] = useState<boolean>(() => {
+    try { return window.localStorage.getItem(LS_DOCK) === 'right' } catch { return false }
+  })
+  const dockedRef = useRef(docked)
+  dockedRef.current = docked
+
+  /** Apply the docked-right geometry: flush to the right edge, full height. */
+  const applyDock = (): void => {
+    const w = sizeRef.current.w
+    setWinPos({ x: window.innerWidth - w, y: 0 })
+    setWinSize(prev => ({ ...prev, h: window.innerHeight }))
+  }
+
+  /** Drag the floating window by its header; clamped to the viewport.
+ * Dragging undocks a docked window; releasing near the right edge docks it
+ * into a full-height right sidebar. */
   const startWinDrag = (e: ReactPointerEvent<HTMLDivElement>): void => {
     const target = e.target as HTMLElement
     if (target.closest('button') !== null) return
     e.preventDefault()
+    if (dockedRef.current) {
+      setDocked(false)
+      saveWin(LS_DOCK, 'free')
+    }
     const startX = e.clientX
     const startY = e.clientY
     const start = posRef.current
@@ -122,10 +145,16 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
       const y = Math.min(Math.max(start.y + ev.clientY - startY, 8), Math.max(8, window.innerHeight - 64))
       setWinPos({ x, y })
     }
-    const onUp = (): void => {
+    const onUp = (up: PointerEvent): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      if (up.clientX >= window.innerWidth - SNAP_PX) {
+        setDocked(true)
+        saveWin(LS_DOCK, 'right')
+        applyDock()
+      }
       saveWin(LS_POS, posRef.current)
+      saveWin(LS_SIZE, sizeRef.current)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -183,6 +212,31 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
   }
+
+  // While docked, shrink the app shell (#root) by the sidebar width so the
+  // conversation never overlaps the docked panel; undock restores it.
+  useEffect(() => {
+    const id = 'dsh-file-trace-dock-style'
+    const existing = document.getElementById(id)
+    if (docked) {
+      const el = existing ?? document.createElement('style')
+      el.id = id
+      el.textContent = `#root { margin-right: ${String(winSize.w)}px; }`
+      if (existing === null) document.head.appendChild(el)
+      return () => { el.remove() }
+    }
+    if (existing !== null) existing.remove()
+    return undefined
+  }, [docked, winSize.w])
+
+  // Restore the docked geometry on mount; keep the dock pinned when the
+  // viewport resizes (the sidebar stays flush-right and full-height).
+  useEffect(() => { if (dockedRef.current) applyDock() }, [])
+  useEffect(() => {
+    const onResize = (): void => { if (dockedRef.current) applyDock() }
+    window.addEventListener('resize', onResize)
+    return () => { window.removeEventListener('resize', onResize) }
+  }, [])
 
   // Escape closes the drawer, mirroring platform dialog behavior.
   useEffect(() => {
@@ -250,6 +304,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         <div
           className={css.drawer}
           data-file-trace-drawer
+          data-dock={docked ? 'right' : undefined}
           role="dialog"
           aria-label={t('title')}
           style={{ left: winPos.x, top: winPos.y, width: winSize.w, height: winSize.h } as CSSProperties}
@@ -261,13 +316,15 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
             role="separator"
             aria-orientation="vertical"
           />
-          <div
-            className={css.resizeH}
-            data-ft-resize-h
-            onPointerDown={startWinResizeH}
-            role="separator"
-            aria-orientation="horizontal"
-          />
+          {docked ? null : (
+            <div
+              className={css.resizeH}
+              data-ft-resize-h
+              onPointerDown={startWinResizeH}
+              role="separator"
+              aria-orientation="horizontal"
+            />
+          )}
           <div className={css.drawerHead} onPointerDown={startWinDrag}>
             <span className={css.drawerTitle}>{t('title')}</span>
             <span className={css.drawerMeta}>

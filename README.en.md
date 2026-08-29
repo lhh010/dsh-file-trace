@@ -1,20 +1,19 @@
 # @dsh-external/dsh-file-trace
 
-A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and reviews every file the model reads, writes, or edits**. A "File trace" button (with an operation-count badge) appears in the session-header utilities; clicking opens a right-side drawer that lists all operations grouped by file, and selecting one shows the numbered content or a **line-by-line diff**. Zero core changes — a pure browser-half plugin.
+A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and reviews every file the model reads, writes, or edits**. A "File trace" button (with an operation-count badge) appears in the session-header utilities; clicking opens a floating window that lists all operations grouped by file, and selecting one shows the numbered content or a **line-by-line diff**. Zero core changes — a pure browser-half plugin.
 
 **English** | [简体中文](./README.md)
 
 ## Install (profile mode)
 
 ```sh
-# 1. Clone the repository (any of the three mirrors); build artifacts are in-tree
+# Option 1: pinned-tag git dependency (public mirror, recommended; github:omdsh-dev/dsh-file-trace also works)
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.3'
+
+# Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
 cd dsh-file-trace && pnpm install
-
-# 2. Install into the web profile (equivalent to pnpm add under $DSH_HOME/profiles/web)
 dsh plugin --profile web add link:/path/to/dsh-file-trace
-#   or a pinned-tag git dependency:
-#   dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.2'
 ```
 
 Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart needed):
@@ -25,8 +24,6 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
       name: '@dsh-external/dsh-file-trace'
 ```
 
-> The plugin must be built (`pnpm run build` produces `lib/client.js`); cloned repos already ship the artifacts, but rebuild after editing source.
-
 > **Install tips**: pnpm 11 may block node-pty build scripts on first install — run `pnpm approve-builds --all` under `~/.dsh/profiles/web` and re-run the install; then **hard-refresh the browser** (Ctrl/Cmd+Shift+R).
 
 ### Prompt install (let DSH install it)
@@ -34,54 +31,37 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.2'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.3'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
 > On errors, first check the known limitations in the README at https://github.com/lhh010/dsh-file-trace.
 
+## Features
 
-ofile mode)
+- **Operation recording**: extracts the model's file reads / writes / edits with running, error, timestamp, and payload-size markers (recursively covering subCalls of host tools such as run_code).
+- **Read view**: shows the real file content with **its real line numbers** (the DSH read-tool envelope is stripped); a failed read renders as a red error block without line numbers.
+- **Write view**: a new-file write shows as **all-added (every line a green +)**; an overwrite shows the true del/add.
+- **Edit view (hunk context folding)**: reconstructs the full file from an earlier in-window write/read, keeps **±3 lines of context** around the change, and folds unchanged large regions (**only runs of ≥3 lines**; ≤2-line runs stay visible) into a "… N lines" run (click to expand/collapse).
+- **Long-line folding**: a single line over 120 chars folds to an ellipsis; click to expand/collapse.
+- **Terminal-style diff**: monospace, line-number gutter, and **red (deleted) / green (added) / blue (modified)** font colors (backgrounds are only a softened tint for readability).
+- **Floating window (draggable / resizable / right-edge docking)**: drag the header to move, drag the left/bottom edges to resize (position and size persist in localStorage); **release the drag near the right screen edge to snap it into a full-height right sidebar while the main conversation shifts left with no overlap — drag the header again to undock**; a separate handle above the diff pane adjusts the list/diff split.
+- **Compatibility self-diagnosis**: the apply body probes the client APIs it needs; if absent it renders a remediation banner instead of crashing. A render-error boundary likewise surfaces the fix hint if the component throws.
 
-```sh
-# 1. Clone the repository (any of the three mirrors); build artifacts are in-tree
-git clone https://github.com/lhh010/dsh-file-trace.git
-cd dsh-file-trace && pnpm install
+## How it works
 
-# 2. Install into the web profile (equivalent to pnpm add under $DSH_HOME/profiles/web)
-dsh plugin --profile web add link:/path/to/dsh-file-trace
-#   or a pinned-tag git dependency:
-#   dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.2'
-```
-
-Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart needed):
-
-```yaml
-- insert:
-    - id: dsh-file-trace
-      name: '@dsh-external/dsh-file-trace'
-```
-
-> The plugin must be built (`pnpm run build` produces `lib/client.js`); cloned repos already ship the artifacts, but rebuild after editing source.
-
-> **Install tips**: pnpm 11 may block node-pty build scripts on first install — run `pnpm approve-builds --all` under `~/.dsh/profiles/web` and re-run the install; then **hard-refresh the browser** (Ctrl/Cmd+Shift+R).
-
-### Prompt install (let DSH install it)
-
-Paste this prompt into any DSH session and the agent installs it for you:
-
-> Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.2'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
-> 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
-> 3. Re-run the install command from step 1
-> 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
-> On errors, first check the known limitations in the README at https://github.com/lhh010/dsh-file-trace.
+- Data is derived entirely from the session Chat view snapshot (`views.get('chat').legacy` tool-result nodes and runningCalls) — a pure derivation each render, no store, no listeners; refresh/paging stays aligned with the loaded window.
+- The diff is a line-level LCS; a del-run followed by an add-run pairs as mod (rewritten).
+- Registered into `conversation.session.header.utilities` (a session-scoped list slot via `ctx.slots.inject`).
 
 ## Version compatibility
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.1.2` (default) | `dsh-v0.1.2-alpha.1` | First version; source-built install, not published to npm. Typecheck, 20 unit tests, and build all green. |
+| `v0.1.3` (default) | `dsh-v0.1.2-alpha.1` | Right-edge docking into a sidebar with main-conversation avoidance; typecheck, 20 unit tests, build all green |
+| `v0.1.2` | `dsh-v0.1.2-alpha.1` | Floating window (drag / resize / persistence) |
+| `v0.1.1` | `dsh-v0.1.2-alpha.1` | Hunk fold threshold ≥3 lines; red error read view; render-error boundary |
+| `v0.1.0` | `dsh-v0.1.2-alpha.1` | First version; source-built install, not published to npm |
 
 - Targets **`dsh-v0.1.2-alpha.1`** (GitHub tag, source-built install).
 - This version's breaking Client rework (removal of `dsh-client-runtime`, Conversation view refactor) is adapted in-tree, with a self-diagnostic banner as a fallback.
@@ -89,12 +69,13 @@ Paste this prompt into any DSH session and the agent installs it for you:
 ## Usage
 
 1. Click "File trace" in the session-header utilities.
-2. The drawer lists operations grouped by file (newest first); select one:
-   - **read** → numbered file content;
+2. The window lists operations grouped by file (newest first); select one:
+   - **read** → numbered file content (errors render as a red block);
    - **write** → all-added (green +) or true del/add;
    - **edit** → ±3 context lines around the change, with "… N lines" folds above/below.
-3. Long lines (>120 chars) toggle on click; "[… N lines]" runs expand/collapse on click.
-4. Drag the handle above the diff pane to resize; Esc or the close button dismisses the drawer.
+3. Long lines (>120 chars) toggle on click; "… N lines" runs expand/collapse on click.
+4. Drag the header to move the window; **release near the right screen edge to dock it as a right sidebar** (the main conversation shifts left automatically), drag again to undock; drag the left/bottom edges to resize.
+5. Esc or the close button dismisses the window.
 
 ## Known limitations
 
