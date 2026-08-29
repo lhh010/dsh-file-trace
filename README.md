@@ -61,7 +61,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.1.0`（默认） | `dsh-v0.1.2-alpha.1` | 首个版本；源码构建安装，不发布 npm。typecheck、20 个单测、构建全绿 |
+| `v0.1.2`（默认） | `dsh-v0.1.2-alpha.1` | 首个版本；源码构建安装，不发布 npm。typecheck、20 个单测、构建全绿 |
 
 - 面向 **`dsh-v0.1.2-alpha.1`**（GitHub tag，源码构建安装）。
 - 该版本客户端的破坏性重构（`dsh-client-runtime` 移除、`Conversation` 视图化）已在插件内完成适配，并带自诊断横幅兜底。

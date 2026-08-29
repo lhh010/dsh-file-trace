@@ -61,7 +61,7 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.1.0` (default) | `dsh-v0.1.2-alpha.1` | First version; source-built install, not published to npm. Typecheck, 20 unit tests, and build all green. |
+| `v0.1.2` (default) | `dsh-v0.1.2-alpha.1` | First version; source-built install, not published to npm. Typecheck, 20 unit tests, and build all green. |
 
 - Targets **`dsh-v0.1.2-alpha.1`** (GitHub tag, source-built install).
 - This version's breaking Client rework (removal of `dsh-client-runtime`, Conversation view refactor) is adapted in-tree, with a self-diagnostic banner as a fallback.
