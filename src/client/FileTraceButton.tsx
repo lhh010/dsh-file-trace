@@ -213,14 +213,15 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     window.addEventListener('pointerup', onUp)
   }
 
-  // While docked, shrink the page (body) by the sidebar width so the
+  // While docked AND open, shrink the page (body) by the sidebar width so the
   // conversation column reflows left and never overlaps the docked panel;
   // fixed-position elements (the docked panel itself) ignore body margin.
   // The panel's left-edge resize handle is the splitter between the two.
+  // Closing the panel removes the margin — reopening (still docked) re-applies.
   useEffect(() => {
     const id = 'dsh-file-trace-dock-style'
     const existing = document.getElementById(id)
-    if (docked) {
+    if (docked && open) {
       const el = existing ?? document.createElement('style')
       el.id = id
       el.textContent = `body { margin-right: ${String(winSize.w)}px !important; }`
@@ -229,7 +230,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     }
     if (existing !== null) existing.remove()
     return undefined
-  }, [docked, winSize.w])
+  }, [docked, open, winSize.w])
   // Restore the docked geometry on mount; keep the dock pinned when the
   // viewport resizes (the sidebar stays flush-right and full-height).
   useEffect(() => { if (dockedRef.current) applyDock() }, [])
