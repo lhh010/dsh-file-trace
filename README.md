@@ -4,23 +4,6 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 [English](./README.en.md) | **简体中文**
 
-## 功能
-
-- **操作记录**：提取模型对文件的读取 / 写入 / 编辑，含执行中、出错标记、时间与载荷大小。
-- **读取视图**：显示被读取文件的**真实内容与真实行号**（剥掉 DSH 读工具响应外壳）。
-- **写入视图**：新文件写入显示为**全量新增（每行绿色 +）**；覆盖修改时按真实差异做 del/add。
-- **编辑视图（hunk 上下文折叠）**：用窗口内更早的写入/读取内容重建完整文件，保留**变更点 ±3 行上下文**；未变化区域**≥3 行才折叠**成「… N 行」（≤2 行直接显示），点击展开/收起。
-- **长行折叠**：单行超过 120 字符自动折叠为省略号，点击展开/收起。
-- **终端风格 diff**：等宽字体、行号 gutter、**删除红 / 新增绿 / 修改蓝** 的字体色（背景仅为对应色调弱化，保证可读）。
-- **浮动窗口（可拖拽 / 可调大小）**：抽屉是独立浮动窗口——拖动标题栏移动位置，拖左缘/底缘调整宽高（位置与大小持久化到 localStorage，刷新后保留）；底部 diff 区上方另有把手调整列表与 diff 的分配。
-- **兼容自诊断**：apply 时探测所需客户端 API，不满足时不崩溃，而是渲染修复指引横幅，提示升级 DSH 或更新插件；组件渲染出错时同样显示修复提示。
-
-## 工作原理
-
-- 数据完全来自会话 Chat 视图快照（`views.get('chat').legacy` 的 tool-result 节点与 runningCalls），并**递归遍历 run_code 等宿主工具的子调用（subCalls）**；每次渲染纯派生，无自建状态、无监听器，刷新/翻页自动对齐当前窗口。
-- diff 为行级 LCS；del-run + add-run 重叠对标记为 mod（修改）。
-- 注册进 `conversation.session.header.utilities`（session 作用域 list 槽位，经 `ctx.slots.inject`）。
-
 ## 安装（profile 模式）
 
 ```sh
@@ -35,6 +18,30 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 ```
 
 配置行（`$DSH_HOME/profiles/web/cordis.patch.yml`，热重载，无需重启）：
+
+```yaml
+- insert:
+    - id: dsh-file-trace
+      name: '@dsh-external/dsh-file-trace'
+```
+
+> 插件需已构建（`pnpm run build` 产出 `lib/client.js`）；克隆的仓库产物已入库，改源码后需重新构建。
+
+> **安装提示**：pnpm 11 首次安装可能拦截 node-pty 等构建脚本——在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all` 放行后重跑安装命令；装完**硬刷新浏览器**（Ctrl/Cmd+Shift+R）。
+
+### 提示词安装（让 DSH 自己装）
+
+把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
+
+> 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.2'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
+> 3. 再执行一次第 1 步的安装命令
+> 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
+> 遇到报错先查 https://github.com/lhh010/dsh-file-trace README 的已知限制。
+
+
+h.yml`，热重载，无需重启）：
 
 ```yaml
 - insert:

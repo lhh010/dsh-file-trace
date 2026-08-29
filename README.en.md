@@ -4,24 +4,44 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 **English** | [简体中文](./README.md)
 
-## Features
-
-- **Operation recording**: extracts the model's file reads / writes / edits, with running, error, timestamp, and payload-size markers.
-- **Read view**: shows the real file content with **its real line numbers** (the DSH read-tool response envelope is stripped).
-- **Write view**: a new-file write shows as **all-added (every line a green +)**; an overwrite shows the true del/add.
-- **Edit view (hunk context folding)**: reconstructs the full file from an earlier in-window write/read, keeps **±3 lines of context** around the change, and folds unchanged large regions into a **"… N lines"** run (click to expand/collapse).
-- **Long-line folding**: a single line over 120 chars folds to an ellipsis; click to expand/collapse.
-- **Terminal-style diff**: monospace, line-number gutter, and **red (deleted) / green (added) / blue (modified)** font colors (backgrounds are only a softened tint for readability).
-- **Floating window (draggable / resizable)**: the drawer is its own floating window — drag the header to move it, drag the left/bottom edges to resize (position and size persist in localStorage); a separate handle above the diff pane adjusts the list/diff split.
-- **Compatibility self-diagnosis**: the apply body probes the client APIs it needs; if absent it renders a remediation banner instead of crashing, pointing to an upgrade path.
-
-## How it works
-
-- Data is derived entirely from the session Chat view snapshot (`views.get('chat').legacy` tool-result nodes and runningCalls), **recursively walking subCalls of host tools such as run_code** — a pure derivation each render, no store, no listeners; refresh/paging stays aligned with the loaded window.
-- The diff is a line-level LCS; a del-run followed by an add-run pairs as mod (rewritten).
-- Registered into `conversation.session.header.utilities` (a session-scoped list slot via `ctx.slots.inject`).
-
 ## Install (profile mode)
+
+```sh
+# 1. Clone the repository (any of the three mirrors); build artifacts are in-tree
+git clone https://github.com/lhh010/dsh-file-trace.git
+cd dsh-file-trace && pnpm install
+
+# 2. Install into the web profile (equivalent to pnpm add under $DSH_HOME/profiles/web)
+dsh plugin --profile web add link:/path/to/dsh-file-trace
+#   or a pinned-tag git dependency:
+#   dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.2'
+```
+
+Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart needed):
+
+```yaml
+- insert:
+    - id: dsh-file-trace
+      name: '@dsh-external/dsh-file-trace'
+```
+
+> The plugin must be built (`pnpm run build` produces `lib/client.js`); cloned repos already ship the artifacts, but rebuild after editing source.
+
+> **Install tips**: pnpm 11 may block node-pty build scripts on first install — run `pnpm approve-builds --all` under `~/.dsh/profiles/web` and re-run the install; then **hard-refresh the browser** (Ctrl/Cmd+Shift+R).
+
+### Prompt install (let DSH install it)
+
+Paste this prompt into any DSH session and the agent installs it for you:
+
+> Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.2'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
+> 3. Re-run the install command from step 1
+> 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
+> On errors, first check the known limitations in the README at https://github.com/lhh010/dsh-file-trace.
+
+
+ofile mode)
 
 ```sh
 # 1. Clone the repository (any of the three mirrors); build artifacts are in-tree
