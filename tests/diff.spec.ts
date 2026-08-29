@@ -1,6 +1,6 @@
 /** diff engine behavior: LCS correctness, rewrite pairing, empty sides. */
 import { describe, expect, it } from 'vitest'
-import { diffLines, formatBytes, buildDiffSegments, type DiffSegment } from '../src/client/diff.ts'
+import { diffLines, formatBytes, buildDiffSegments, diffInline, type DiffSegment } from '../src/client/diff.ts'
 
 describe('diffLines', () => {
   it('marks identical texts as all context', () => {
@@ -39,6 +39,34 @@ describe('diffLines', () => {
   it('diffs to nothing as all-deleted', () => {
     const rows = diffLines('x\ny', '')
     expect(rows.map(r => r.kind)).toEqual(['del', 'del'])
+  })
+})
+
+describe('diffInline', () => {
+  it('marks only the changed substring on identical-prefix/suffix lines', () => {
+    const r = diffInline('hello world again', 'hello dsh world again')
+    const changedOld = r.old.filter(s => s.changed).map(s => s.text).join('')
+    const changedNext = r.next.filter(s => s.changed).map(s => s.text).join('')
+    expect(changedNext).toBe('dsh ')
+    expect(changedOld).toBe('')
+  })
+
+  it('marks an insertion as changed on the new side only', () => {
+    const r = diffInline('abc', 'aXbc')
+    expect(r.next.filter(s => s.changed).map(s => s.text).join('')).toBe('X')
+    expect(r.old.every(s => !s.changed)).toBe(true)
+  })
+
+  it('degrades very long lines to a single changed segment', () => {
+    const r = diffInline('x'.repeat(2500), 'y'.repeat(2500))
+    expect(r.next).toHaveLength(1)
+    expect(r.next[0]!.changed).toBe(true)
+  })
+
+  it('returns empty changed runs for identical text', () => {
+    const r = diffInline('same', 'same')
+    expect(r.old.every(s => !s.changed)).toBe(true)
+    expect(r.next.every(s => !s.changed)).toBe(true)
   })
 })
 

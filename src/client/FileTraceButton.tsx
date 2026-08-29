@@ -12,7 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { extractFileOps, groupByFile, knownContentBefore, parseReadLines, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
-import { diffLines, formatBytes, buildDiffSegments, MIN_FOLD, type DiffRow } from './diff.ts'
+import { diffLines, formatBytes, buildDiffSegments, diffInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import css from './FileTrace.module.css'
 
 /** Renders the remediation banner once when the drawer subtree throws. */
@@ -255,6 +255,28 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     [selectedOp, selected?.path, ops],
   )
   const segments = useMemo(() => buildDiffSegments(diffRows), [diffRows])
+  // Char-level highlight for mod-row pairs: keyed by (oldLine|newLine), so a
+  // rewritten line shows exactly which substring changed (higher-contrast bg).
+  const inlineMap = useMemo(() => {
+    const map = new Map<string, InlineDiff>()
+    let i = 0
+    while (i < diffRows.length) {
+      if (diffRows[i]!.kind !== 'mod') { i += 1; continue }
+      let j = i
+      while (j < diffRows.length && diffRows[j]!.kind === 'mod') j += 1
+      const block = diffRows.slice(i, j)
+      const k = Math.floor(block.length / 2)
+      for (let p = 0; p < k; p += 1) {
+        const delRow = block[p]!
+        const addRow = block[p + k]!
+        const r = diffInline(delRow.text, addRow.text)
+        map.set(`${String(delRow.oldLine ?? '')}|${String(delRow.newLine ?? '')}`, r)
+        map.set(`${String(addRow.oldLine ?? '')}|${String(addRow.newLine ?? '')}`, r)
+      }
+      i = j
+    }
+    return map
+  }, [diffRows])
   // Reset folding when selecting a different operation (the row indexes change).
   useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()) }, [selectedOp])
 
@@ -283,7 +305,17 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         <span className={css.sign} aria-label={t(`diff.${row.kind}` as never)}>
           {row.kind === 'del' ? '-' : row.kind === 'add' ? '+' : row.kind === 'mod' ? '~' : ' '}
         </span>
-        <span className={css.text} data-folded={isFolded ? 'true' : undefined}>{row.text}</span>
+        <span className={css.text} data-folded={isFolded ? 'true' : undefined}>
+          {row.kind === 'mod' && (() => {
+            const inline = inlineMap.get(`${String(row.oldLine ?? '')}|${String(row.newLine ?? '')}`)
+            if (inline === undefined) return row.text
+            const side = row.oldLine !== undefined ? inline.old : inline.next
+            return side.map((seg, segIndex) => (
+              <span key={String(segIndex)} className={seg.changed ? css.inlineChange : undefined}>{seg.text}</span>
+            ))
+          })()}
+          {row.kind !== 'mod' && row.text}
+        </span>
       </div>
     )
   }

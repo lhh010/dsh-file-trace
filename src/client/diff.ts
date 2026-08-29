@@ -187,6 +187,66 @@ function lastNewLine(rows: readonly DiffRow[]): number | undefined {
   return undefined
 }
 
+/** One intra-line segment: a run of chars with a changed flag. */
+export interface InlineSegment { readonly text: string; readonly changed: boolean }
+/** Each side's intra-line segments. */
+export interface InlineDiff { readonly old: readonly InlineSegment[]; readonly next: readonly InlineSegment[] }
+
+/** Char-diff table guard: above this, inline highlighting is skipped. */
+const INLINE_MAX = 2000
+
+/**
+ * Character-level diff between two line texts, used to highlight the exact
+ * changed substring inside a "mod" (rewritten) line. Long lines degrade to a
+ * single all-changed segment. Pure, no React/DOM.
+ * @param oldText - the old line.
+ * @param newText - the new line.
+ * @returns per-side segments marking changed runs.
+ */
+export function diffInline(oldText: string, newText: string): InlineDiff {
+  const m = oldText.length
+  const n = newText.length
+  if (m > INLINE_MAX || n > INLINE_MAX) {
+    const all = { text: oldText === newText ? newText : newText, changed: oldText !== newText }
+    return { old: [{ text: oldText, changed: oldText !== newText }], next: [{ text: newText, changed: oldText !== newText }] }
+  }
+  // LCS length table over characters.
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0))
+  for (let i = m - 1; i >= 0; i -= 1) {
+    for (let j = n - 1; j >= 0; j -= 1) {
+      dp[i]![j] = oldText[i] === newText[j]
+        ? dp[i + 1]![j + 1]! + 1
+        : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!)
+    }
+  }
+  const oldSegs: InlineSegment[] = []
+  const nextSegs: InlineSegment[] = []
+  let i = 0
+  let j = 0
+  let oBuf = ''
+  let nBuf = ''
+  let oChanged = false
+  let nChanged = false
+  const flushOld = (): void => { if (oBuf.length > 0) { oldSegs.push({ text: oBuf, changed: oChanged }); oBuf = ''; oChanged = false } }
+  const flushNext = (): void => { if (nBuf.length > 0) { nextSegs.push({ text: nBuf, changed: nChanged }); nBuf = ''; nChanged = false } }
+  while (i < m && j < n) {
+    if (oldText[i] === newText[j]) {
+      flushOld(); flushNext()
+      oldSegs.push({ text: oldText[i]!, changed: false })
+      nextSegs.push({ text: newText[j]!, changed: false })
+      i += 1; j += 1
+    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) {
+      oBuf += oldText[i]!; oChanged = true; flushNext(); i += 1
+    } else {
+      nBuf += newText[j]!; nChanged = true; flushOld(); j += 1
+    }
+  }
+  flushOld(); flushNext()
+  while (i < m) { oBuf += oldText[i]!; oChanged = true; i += 1; flushOld() }
+  while (j < n) { nBuf += newText[j]!; nChanged = true; j += 1; flushNext() }
+  return { old: oldSegs, next: nextSegs }
+}
+
 /** Human byte count for the panel meta row. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${String(bytes)} B`
