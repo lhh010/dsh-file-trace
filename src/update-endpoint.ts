@@ -8,15 +8,44 @@
  *   installed; the endpoint exists solely for the user-initiated update
  *   click in the browser panel.
  */
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import type { Context } from '@deepseek-ai/cordis'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
 // Type-only: pulls the webServer service's Context merge (ctx.webServer).
 import type {} from '@deepseek-ai/dsh-host-webserver'
 
 const UPDATE_PATH = '/dsh-file-trace/update'
+const LATEST_PATH = '/dsh-file-trace/latest'
 const PACKAGE_SPEC = '@dsh-external/dsh-file-trace'
 const MIRROR = 'lhh010/dsh-file-trace'
+const REPO_GIT = `https://github.com/${MIRROR}.git`
+
+/** Compare two v-prefixed semvers; >0 when a is newer. */
+function semverCompare(a: string, b: string): number {
+  const parse = (v: string): number[] => { const p = v.replace(/^v/, '').split('.').map(x => Number(x) || 0); while (p.length < 3) p.push(0); return p }
+  const pa = parse(a)
+  const pb = parse(b)
+  return (pa[0]! - pb[0]!) || (pa[1]! - pb[1]!) || (pa[2]! - pb[2]!)
+}
+
+/** Newest vX.Y.Z tag on the public mirror, via git ls-remote (no auth). */
+function latestFromGit(): string | undefined {
+  try {
+    const out = execFileSync('git', ['ls-remote', '--tags', REPO_GIT], { encoding: 'utf8', maxBuffer: 1024 * 1024 })
+    let latest: string | undefined
+    for (const line of out.split('\n')) {
+      const trimmed = line.trim()
+      if (trimmed.length === 0) continue
+      const match = trimmed.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/)
+      if (match !== null && (latest === undefined || semverCompare(match[1]!, latest) > 0)) {
+        latest = match[1]!
+      }
+    }
+    return latest
+  } catch {
+    return undefined
+  }
+}
 
 /** Run one install command in the profile directory, resolving its exit. */
 function runInstall(tag: string): Promise<{ ok: boolean; output: string }> {
@@ -53,6 +82,16 @@ function readBody(req: { on: (event: string, listener: (chunk: Buffer) => void) 
  */
 export function registerUpdateEndpoint(ctx: Context): void {
   ctx.effect(() => {
+    // Read-only: the newest publicly released tag (git ls-remote, no auth).
+    const latestDispose = ctx.webServer.register({
+      kind: 'exact',
+      path: LATEST_PATH,
+      handler: (_req, res) => {
+        const body = `${JSON.stringify({ latest: latestFromGit() ?? null })}\n`
+        res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+        res.end(body)
+      },
+    })
     const dispose = ctx.webServer.register({
       kind: 'exact',
       path: UPDATE_PATH,
@@ -76,6 +115,6 @@ export function registerUpdateEndpoint(ctx: Context): void {
         }
       },
     })
-    return dispose
+    return () => { dispose(); latestDispose() }
   }, 'file-trace: update endpoint')
 }

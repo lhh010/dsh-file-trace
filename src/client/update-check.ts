@@ -53,16 +53,22 @@ async function latestFromRaw(): Promise<string | undefined> {
   return typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? `v${version}` : undefined
 }
 
-export async function fetchLatestTag(): Promise<string | undefined> {
+/** Write-only host endpoint: same-origin so the browser is never subject to
+ * GitHub CORS; falls back to the GitHub sources when the host half is absent. */
+async function latestFromHost(): Promise<string | undefined> {
   try {
-    return (await latestFromTags()) ?? (await latestFromRaw())
+    const res = await fetch('/dsh-file-trace/latest', { method: 'GET' })
+    if (!res.ok) return undefined
+    const body: unknown = await res.json()
+    const latest = (body as { latest?: string }).latest
+    return typeof latest === 'string' && /^v\d+\.\d+\.\d+$/.test(latest) ? latest : undefined
   } catch {
-    try {
-      return await latestFromRaw()
-    } catch {
-      return undefined
-    }
+    return undefined
   }
+}
+
+export async function fetchLatestTag(): Promise<string | undefined> {
+  return (await latestFromHost()) ?? (await latestFromTags()) ?? (await latestFromRaw())
 }
 
 /** The update prompt used by the composer fallback path. */
