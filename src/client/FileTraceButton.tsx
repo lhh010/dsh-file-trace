@@ -100,14 +100,24 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const [winPos, setWinPos] = useState<{ x: number; y: number }>(() => {
     try {
       const saved = window.localStorage.getItem(LS_POS)
-      if (saved !== null) return JSON.parse(saved) as { x: number; y: number }
+      if (saved !== null) {
+        const p = JSON.parse(saved) as { x?: unknown; y?: unknown }
+        if (typeof p.x === 'number' && Number.isFinite(p.x) && typeof p.y === 'number' && Number.isFinite(p.y)) {
+          return { x: Math.min(Math.max(p.x, 8), Math.max(8, window.innerWidth - 300)), y: Math.min(Math.max(p.y, 8), Math.max(8, window.innerHeight - 120)) }
+        }
+      }
     } catch { /* fall through to the default */ }
     return { x: Math.max(16, window.innerWidth - 576), y: Math.max(16, Math.round(window.innerHeight * 0.12)) }
   })
   const [winSize, setWinSize] = useState<{ w: number; h: number }>(() => {
     try {
       const saved = window.localStorage.getItem(LS_SIZE)
-      if (saved !== null) return JSON.parse(saved) as { w: number; h: number }
+      if (saved !== null) {
+        const s = JSON.parse(saved) as { w?: unknown; h?: unknown }
+        if (typeof s.w === 'number' && Number.isFinite(s.w) && typeof s.h === 'number' && Number.isFinite(s.h)) {
+          return { w: Math.min(Math.max(s.w, 360), window.innerWidth - 16), h: Math.min(Math.max(s.h, 200), window.innerHeight - 16) }
+        }
+      }
     } catch { /* fall through to the default */ }
     return { w: Math.min(560, window.innerWidth - 32), h: Math.min(720, window.innerHeight - 64) }
   })
@@ -424,7 +434,14 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
           data-dock={docked ? 'right' : undefined}
           role="dialog"
           aria-label={t('title')}
-          style={{ left: winPos.x, top: winPos.y, width: winSize.w, height: winSize.h } as CSSProperties}
+          style={docked
+            ? ({ left: window.innerWidth - winSize.w, top: 0, width: winSize.w, height: window.innerHeight } as CSSProperties)
+            : ({
+              left: Number.isFinite(winPos.x) ? Math.min(Math.max(winPos.x, 8), Math.max(8, window.innerWidth - 360)) : Math.max(16, window.innerWidth - 576),
+              top: Number.isFinite(winPos.y) ? Math.min(Math.max(winPos.y, 8), Math.max(8, window.innerHeight - 120)) : 16,
+              width: Number.isFinite(winSize.w) ? Math.min(Math.max(winSize.w, 360), window.innerWidth - 16) : Math.min(560, window.innerWidth - 16),
+              height: Number.isFinite(winSize.h) ? Math.min(Math.max(winSize.h, 200), window.innerHeight - 16) : Math.min(720, window.innerHeight - 16),
+            } as CSSProperties)}
         >
           <div
             className={css.resizeW}
