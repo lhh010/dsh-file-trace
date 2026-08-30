@@ -17,9 +17,9 @@ import { diffLines, formatBytes, buildDiffSegments, diffInline, MIN_FOLD, type D
 import css from './FileTrace.module.css'
 
 /** Renders the remediation banner once when the drawer subtree throws. */
-class DrawerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  override state = { failed: false }
-  static getDerivedStateFromError(): { failed: boolean } { return { failed: true } }
+class DrawerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; message: string }> {
+  override state = { failed: false, message: '' }
+  static getDerivedStateFromError(error: unknown): { failed: boolean; message: string } { return { failed: true, message: String((error as Error)?.message ?? error) } }
   override componentDidCatch(error: unknown): void {
     renderCompatBanner(
       'dsh-file-trace',
@@ -29,7 +29,13 @@ class DrawerErrorBoundary extends Component<{ children: ReactNode }, { failed: b
     )
   }
   override render(): ReactNode {
-    if (this.state.failed) return null
+    if (this.state.failed) {
+      return (
+        <div className={css.drawerError} data-file-trace-error>
+          渲染出错：{this.state.message}
+        </div>
+      )
+    }
     return this.props.children
   }
 }
@@ -397,8 +403,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   }
 
   return (
-    <DrawerErrorBoundary>
-      <>
+    <>
       <button
         type="button"
         className={css.trigger}
@@ -412,6 +417,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         {newerTag !== undefined && <span className={css.updateDot} title={`新版本 ${newerTag} 可用`}>⟳</span>}
       </button>
       {open && (
+        <DrawerErrorBoundary key={String(selected?.op.callId ?? 'open')}>
         <div
           className={css.drawer}
           data-file-trace-drawer
@@ -549,8 +555,8 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
             </div>
           )}
         </div>
+        </DrawerErrorBoundary>
       )}
-      </>
-    </DrawerErrorBoundary>
+    </>
   )
 }
