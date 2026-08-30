@@ -33,7 +33,7 @@ function semverCompare(a: string, b: string): number {
 /** Newest vX.Y.Z tag on the public mirror, via git ls-remote (no auth).
  * Async with a hard timeout and a TTL cache: a synchronous execFileSync here
  * would block the whole host event loop while the network is unreachable. */
-const CACHE_TTL_MS = 300_000
+const CACHE_TTL_MS = 60_000
 const GIT_TIMEOUT_MS = 8_000
 let latestCache: { at: number; latest: string | undefined } | undefined
 let latestInflight: Promise<string | undefined> | undefined
