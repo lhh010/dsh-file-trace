@@ -233,6 +233,23 @@ export function diffInline(oldText: string, newText: string): InlineDiff {
   return { old: segments(oldText, oldMidStart, oldMidEnd), next: segments(newText, newMidStart, newMidEnd) }
 }
 
+/**
+ * Merge adjacent inline segments sharing the same changed flag, so rendering
+ * wraps each run — not each character — in one span.
+ * @param segments - the raw per-character-heavy inline segments.
+ * @returns coalesced segments; identical text joined into runs.
+ */
+export function coalesceInline(segments: readonly InlineSegment[]): InlineSegment[] {
+  const out: InlineSegment[] = []
+  for (const seg of segments) {
+    const last = out[out.length - 1]
+    if (last !== undefined && last.changed === seg.changed) out[out.length - 1] = { text: last.text + seg.text, changed: seg.changed }
+    else out.push(seg)
+  }
+  return out
+}
+
+/** Human byte count for the panel meta row. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${String(bytes)} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`

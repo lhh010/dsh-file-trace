@@ -24,6 +24,8 @@ export interface FileOp {
   readonly running: boolean
   /** True when the result reported an error. */
   readonly isError: boolean
+  /** The result's error text when isError; presented instead of the payload. */
+  readonly errorText?: string
   /** For 'edit': the model's exact replacement payload. */
   readonly edit?: { oldString: string; newString: string }
   /** For 'write': the full new content. */
@@ -68,6 +70,17 @@ function pathOf(args: Record<string, unknown>): string | undefined {
   return undefined
 }
 
+/** Join a result's text blocks into one string. */
+function joinText(content: ReadonlyArray<object>): string {
+  return content
+    .map((block) => {
+      if (!('text' in block)) return ''
+      const text: unknown = block.text
+      return typeof text === 'string' ? text : ''
+    })
+    .join('')
+}
+
 /** Extract one settled tool-result node when it touches a file. */
 function opOfResult(node: ToolResultNode): FileOp | undefined {
   if (node.call === null) return undefined
@@ -76,6 +89,7 @@ function opOfResult(node: ToolResultNode): FileOp | undefined {
   const args = parseArgs(node.call.argsRaw)
   const path = pathOf(args)
   if (path === undefined) return undefined
+  const errorText = node.isError ? joinText(node.content) : undefined
   const base = {
     callId: node.callId,
     kind,
@@ -83,6 +97,7 @@ function opOfResult(node: ToolResultNode): FileOp | undefined {
     time: node.callTime ?? node.time,
     running: false,
     isError: node.isError,
+    ...(errorText !== undefined && errorText.length > 0 ? { errorText } : {}),
   }
   if (kind === 'edit') {
     const oldString = args.old_string
@@ -94,17 +109,13 @@ function opOfResult(node: ToolResultNode): FileOp | undefined {
   if (kind === 'write') {
     const fromArgs = args.content
     // Fall back to the result content block when the args payload omits it.
-    const fromResult = node.content
-      .map((block) => ('text' in block && typeof block.text === 'string' ? block.text : ''))
-      .join('')
+    const fromResult = joinText(node.content)
     const content = typeof fromArgs === 'string' && fromArgs.length > 0 ? fromArgs : fromResult
     return content.length > 0 ? { ...base, content } : base
   }
   if (kind === 'read') {
     // The read tool returns the file content as text blocks; join them.
-    const text = node.content
-      .map((block) => ('text' in block && typeof block.text === 'string' ? block.text : ''))
-      .join('')
+    const text = joinText(node.content)
     return text.length > 0 ? { ...base, read: text } : base
   }
   return base

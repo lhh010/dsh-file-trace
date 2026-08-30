@@ -1,6 +1,6 @@
 /** diff engine behavior: LCS correctness, rewrite pairing, empty sides. */
 import { describe, expect, it } from 'vitest'
-import { diffLines, formatBytes, buildDiffSegments, diffInline, type DiffSegment } from '../src/client/diff.ts'
+import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, type DiffSegment } from '../src/client/diff.ts'
 
 describe('diffLines', () => {
   it('marks identical texts as all context', () => {
@@ -67,6 +67,30 @@ describe('diffInline', () => {
     const r = diffInline('same', 'same')
     expect(r.old.every(s => !s.changed)).toBe(true)
     expect(r.next.every(s => !s.changed)).toBe(true)
+  })
+})
+
+describe('coalesceInline', () => {
+  it('merges adjacent segments sharing the changed flag', () => {
+    const merged = coalesceInline([
+      { text: 'l', changed: false }, { text: 'ine 10', changed: false },
+      { text: ' ', changed: true }, { text: 'C', changed: true },
+      { text: '!', changed: false },
+    ])
+    expect(merged).toEqual([
+      { text: 'line 10', changed: false },
+      { text: ' C', changed: true },
+      { text: '!', changed: false },
+    ])
+  })
+
+  it('coalesces diffInline output into one span per run', () => {
+    const { old: oldSide } = diffInline('hello world', 'hello dsh')
+    const merged = coalesceInline(oldSide)
+    expect(merged).toEqual([
+      { text: 'hello ', changed: false },
+      { text: 'world', changed: true },
+    ])
   })
 })
 

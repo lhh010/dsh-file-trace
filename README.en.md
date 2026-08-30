@@ -8,7 +8,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.4'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.7'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -31,7 +31,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.4'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.7'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -40,7 +40,9 @@ Paste this prompt into any DSH session and the agent installs it for you:
 ## Features
 
 - **Operation recording**: extracts the model's file reads / writes / edits with running, error, timestamp, and payload-size markers (recursively covering subCalls of host tools such as run_code).
-- **Read view**: shows the real file content with **its real line numbers** (the DSH read-tool envelope is stripped); a failed read renders as a red error block without line numbers.
+- **Read view**: shows the real file content with **its real line numbers** (the DSH read-tool envelope is stripped).
+- **Unified error display**: opening a failed read / write / edit shows the real error text from the result (a red error block) instead of a fabricated diff.
+- **Syntax highlighting**: detects common languages by extension (C/C++, Java, C#, JS/TS, Python, Go, Rust, cmd/batch, PowerShell, JSON/YAML/TOML, SQL, …) and colors **keywords / strings / numbers / types / functions / comments / preprocessor directives** in the read view and diff rows; on modified lines the intra-line change tint stacks on top.
 - **Write view**: a new-file write shows as **all-added (every line a green +)**; an overwrite shows the true del/add.
 - **Edit view (hunk context folding)**: reconstructs the full file from an earlier in-window write/read, keeps **±3 lines of context** around the change, and folds unchanged large regions (**only runs of ≥3 lines**; ≤2-line runs stay visible) into a "… N lines" run (click to expand/collapse).
 - **Long-line folding**: a single line over 120 chars folds to an ellipsis; click to expand/collapse.
@@ -58,7 +60,9 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.1.4` (default) | `dsh-v0.1.2-alpha.1` | Auto version check + click-to-update |
+| `v0.1.7` (default) | `dsh-v0.1.2-alpha.1` | Syntax highlighting (multi-line block comments included); unified real-error display; fold-expansion alignment fix; version tracks the tag | 
+| `v0.1.6` | `dsh-v0.1.2-alpha.1` | Host-same-origin version check; scroll position memory | 
+| `v0.1.4` | `dsh-v0.1.2-alpha.1` | Auto version check + click-to-update |
 | `v0.1.3` | `dsh-v0.1.2-alpha.1` | Right-edge docking into a sidebar with main-conversation avoidance; typecheck, 20 unit tests, build all green |
 | `v0.1.2` | `dsh-v0.1.2-alpha.1` | Floating window (drag / resize / persistence) |
 | `v0.1.1` | `dsh-v0.1.2-alpha.1` | Hunk fold threshold ≥3 lines; red error read view; render-error boundary |
@@ -82,5 +86,5 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 - Covers only the loaded window's operations, matching the Chat view; paging fills in as it loads.
 - The edit "full-file context" relies on an earlier in-window write/read of the **same file**; otherwise only the model-provided old_string/new_string snippet is shown.
-- Line-level diff only; in-line (character-level) highlighting is not implemented yet.
+- Line-level diff plus intra-line (character-level) highlighting; syntax highlighting is a lightweight regex tokenizer (no syntax tree) with multi-line block-comment state threaded in line order, so complex constructs may be imprecise.
 - The zh/en bilingual consistency record lives in `README.i18n.yaml`.

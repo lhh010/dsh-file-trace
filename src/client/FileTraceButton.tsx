@@ -13,7 +13,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { extractFileOps, groupByFile, knownContentBefore, parseReadLines, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
 import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
-import { diffLines, formatBytes, buildDiffSegments, diffInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
+import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
+import { scanLine, isColored, langOfPath, hasBlockComment, type TokenType, type CodeToken } from './highlight.ts'
 import css from './FileTrace.module.css'
 
 /** Renders the remediation banner once when the drawer subtree throws. */
@@ -42,6 +43,52 @@ class DrawerErrorBoundary extends Component<{ children: ReactNode }, { failed: b
 
 /** Long diff lines fold to one ellipsized row; the threshold is the char count. */
 const FOLD_THRESHOLD = 120
+
+/** Token class -> CSS color class ('' inherits the row's diff color). */
+const TOKEN_CLASS: Readonly<Record<TokenType, string>> = {
+  plain: '',
+  comment: css.tokComment ?? '',
+  string: css.tokString ?? '',
+  keyword: css.tokKeyword ?? '',
+  number: css.tokNumber ?? '',
+  type: css.tokType ?? '',
+  function: css.tokFunction ?? '',
+  macro: css.tokMacro ?? '',
+}
+
+/** One token span's class list: its color class, plus the change tint. */
+function tokenSpanClass(type: TokenType, changed: boolean): string {
+  const color = TOKEN_CLASS[type]
+  return changed ? `${color} ${css.inlineChange}` : color
+}
+
+/** Render scanned tokens as colored nodes; uncolored runs stay text. */
+function tokensToNodes(tokens: readonly CodeToken[], changed = false): ReactNode[] {
+  const nodes: ReactNode[] = []
+  for (const token of tokens) {
+    if (!changed && !isColored(token)) nodes.push(token.text)
+    else nodes.push(<span key={String(nodes.length)} className={tokenSpanClass(token.type, changed)}>{token.text}</span>)
+  }
+  return nodes
+}
+
+/** Per-row block-comment entry state for a diff: the old side threads along
+ *  old-line order and the new side along new-line order (the LCS row order
+ *  preserves both), so multi-line comments color correctly on each side. */
+function diffBlockEntries(rows: readonly DiffRow[], lang: string | undefined): Map<DiffRow, boolean> {
+  const entries = new Map<DiffRow, boolean>()
+  if (!hasBlockComment(lang)) return entries
+  let oldIn = false
+  let newIn = false
+  for (const row of rows) {
+    const isOld = row.oldLine !== undefined
+    const isNew = row.newLine !== undefined
+    entries.set(row, isOld ? oldIn : newIn)
+    if (isOld) oldIn = scanLine(row.text, lang, oldIn).inBlock
+    if (isNew) newIn = scanLine(row.text, lang, newIn).inBlock
+  }
+  return entries
+}
 
 /** Trigger props: session standard kit + locale seat. */
 export type FileTraceButtonProps = PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'fileTrace'>
@@ -348,6 +395,11 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
 
   const count = ops.length
   const selectedOp = selected?.op
+  // Language hint for syntax coloring of the selected op's content.
+  const selectedLang = useMemo(
+    () => selected === null ? undefined : langOfPath(selected.path),
+    [selected],
+  )
   const diffRows = useMemo(
     () => selectedOp === undefined ? [] : diffOf(selectedOp, knownContentBefore(ops, selected?.path ?? '', selectedOp)),
     [selectedOp, selected?.path, ops],
@@ -375,6 +427,18 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     }
     return map
   }, [diffRows])
+  // Block-comment entry state per row, threaded per side (multi-line comments).
+  const blockEntries = useMemo(() => diffBlockEntries(diffRows, selectedLang), [diffRows, selectedLang])
+  // Read view rows with block-comment state threaded down the file's lines.
+  const readRows = useMemo(() => {
+    if (selectedOp?.kind !== 'read' || selectedOp.read === undefined) return []
+    let state = false
+    return parseReadLines(selectedOp.read).map((line) => {
+      const scan = scanLine(line.text, selectedLang, state)
+      state = scan.inBlock
+      return { line: line.line, nodes: tokensToNodes(scan.tokens) }
+    })
+  }, [selectedOp, selectedLang])
   // Reset folding when selecting a different operation (the row indexes change).
   useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()) }, [selectedOp])
 
@@ -395,8 +459,9 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   }, [selectedOp])
 
   // One diff row: colored sign + text, with the long-line fold toggle.
-  const renderDiffRow = (row: DiffRow, rowKey: string): ReactElement => {
+  const renderDiffRow = (row: DiffRow, rowKey: string, lang: string | undefined): ReactElement => {
     const isLong = row.text.length > FOLD_THRESHOLD
+    const blockEntry = blockEntries.get(row) ?? false
     const isFolded = isLong && !expandedLines.has(rowKey)
     return (
       <div
@@ -422,13 +487,20 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         <span className={css.text} data-folded={isFolded ? 'true' : undefined}>
           {row.kind === 'mod' && (() => {
             const inline = inlineMap.get(`${String(row.oldLine ?? '')}|${String(row.newLine ?? '')}`)
-            if (inline === undefined) return row.text
-            const side = row.oldLine !== undefined ? inline.old : inline.next
-            return side.map((seg, segIndex) => (
-              <span key={String(segIndex)} className={seg.changed ? css.inlineChange : undefined}>{seg.text}</span>
-            ))
+            if (inline === undefined) return tokensToNodes(scanLine(row.text, lang, blockEntry).tokens)
+            // Coalesced change runs, each split into syntax tokens with
+            // block-comment state threaded across the runs of this line.
+            const side = coalesceInline(row.oldLine !== undefined ? inline.old : inline.next)
+            const nodes: ReactNode[] = []
+            let state = blockEntry
+            for (const seg of side) {
+              const scan = scanLine(seg.text, lang, state)
+              state = scan.inBlock
+              nodes.push(...tokensToNodes(scan.tokens, seg.changed))
+            }
+            return nodes
           })()}
-          {row.kind !== 'mod' && row.text}
+          {row.kind !== 'mod' && tokensToNodes(scanLine(row.text, lang, blockEntry).tokens)}
         </span>
       </div>
     )
@@ -550,24 +622,26 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                 </span>
                 <button type="button" className={css.close} onClick={() => { setSelected(null) }}>×</button>
               </div>
-              {selected.op.kind === 'read'
+              {selected.op.isError
                 ? (
-                  <div className={css.readContent} data-file-trace-read data-error={selected.op.isError ? 'true' : undefined} ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
-                    {selected.op.isError
-                      ? (
-                        <div className={css.readError} role="alert">
-                          {selected.op.read ?? t('error')}
-                        </div>
-                      )
-                      : (selected.op.read === undefined ? [] : parseReadLines(selected.op.read)).map((line) => (
-                        <div key={String(line.line)} className={css.readRow}>
-                          <span className={css.lineNo}>{String(line.line)}</span>
-                          <span className={css.text}>{line.text}</span>
-                        </div>
-                      ))}
+                  <div className={css.readContent} data-file-trace-read data-error="true" ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
+                    <div className={css.readError} role="alert">
+                      {selected.op.errorText ?? t('error')}
+                    </div>
                   </div>
                 )
-                : (
+                : selected.op.kind === 'read'
+                  ? (
+                    <div className={css.readContent} data-file-trace-read ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
+                      {readRows.map((row) => (
+                        <div key={String(row.line)} className={css.readRow}>
+                          <span className={css.lineNo}>{String(row.line)}</span>
+                          <span className={css.text}>{row.nodes}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                  : (
                   <div className={css.diffRows} ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                     {selected.op.kind === 'write'
                       && knownContentBefore(ops, selected.path, selected.op) === undefined
@@ -579,7 +653,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                         const shouldFold = segment.rows.length >= MIN_FOLD
                         const isExpanded = expandedFolds.has(segIndex)
                         if (!shouldFold) {
-                          return segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`))
+                          return segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`, selectedLang))
                         }
                         return (
                           <div
@@ -596,7 +670,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                             }}
                           >
                             {isExpanded
-                              ? segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`))
+                              ? segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`, selectedLang))
                               : (
                                 <span className={css.foldMarker} title={`${t('diff.context')} ${segment.oldStart}–${segment.oldEnd} · ${segment.newStart}–${segment.newEnd}`}>
                                   {t('diff.fold', { count: String(segment.rows.length) })}
@@ -605,10 +679,10 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                           </div>
                         )
                       }
-                      return segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`))
+                      return segment.rows.map((row, index) => renderDiffRow(row, `${segIndex}-${String(index)}`, selectedLang))
                     })}
                   </div>
-                )}
+                  )}
             </div>
           )}
         </div>

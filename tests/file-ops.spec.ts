@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { extractFileOps, groupByFile, knownContentBefore } from '../src/client/file-ops.ts'
 import type { ToolResultNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 
-/** Minimal settled tool-result node fixture. */
-function result(callId: string, name: string, args: Record<string, unknown>, time: number, isError = false): ToolResultNode {
+/** Minimal settled tool-result node fixture; content defaults empty. */
+function result(callId: string, name: string, args: Record<string, unknown>, time: number, isError = false, content: unknown[] = []): ToolResultNode {
   return {
     kind: 'tool-result',
     seq: time,
@@ -12,7 +12,7 @@ function result(callId: string, name: string, args: Record<string, unknown>, tim
     callId,
     call: { name, argsRaw: JSON.stringify(args) },
     callTime: time,
-    content: [],
+    content,
     isError,
     subCalls: [],
   } as unknown as ToolResultNode
@@ -57,6 +57,21 @@ describe('extractFileOps', () => {
     expect(ops[0]!.isError).toBe(true)
     const running = extractFileOps([], [{ callId: 'r', name: 'edit', argsRaw: JSON.stringify({ file_path: 'q' }), turn: 1, step: 1, time: 6, subCalls: [] }])
     expect(running[0]!.running).toBe(true)
+  })
+
+  it('captures the result text as errorText for errored ops of every kind', () => {
+    const errText = [{ type: 'text', text: 'cannot write "a": not found' }]
+    const ops = extractFileOps([
+      result('w', 'write', { file_path: 'a', content: 'z' }, 1, true, errText),
+      result('e', 'edit', { file_path: 'b', old_string: 'x', new_string: 'y' }, 2, true, errText),
+      result('r', 'read', { file_path: 'c' }, 3, true, errText),
+    ], [])
+    for (const op of ops) expect(op.errorText).toBe('cannot write "a": not found')
+  })
+
+  it('omits errorText on successful ops', () => {
+    const ops = extractFileOps([result('w', 'write', { file_path: 'a', content: 'z' }, 1, false, [{ type: 'text', text: 'ok' }])], [])
+    expect(ops[0]!.errorText).toBeUndefined()
   })
 })
 
