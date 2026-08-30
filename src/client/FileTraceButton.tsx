@@ -129,6 +129,8 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const [open, setOpen] = useState(false)
   // Update check: newest tag from the public mirror, once per open.
   const [latestTag, setLatestTag] = useState<string | undefined>(undefined)
+  // True when the version check could not reach the network (shown in the drawer head).
+  const [checkFailed, setCheckFailed] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [updateMsg, setUpdateMsg] = useState<string | null>(null)
   const [selected, setSelected] = useState<{ path: string; op: FileOp } | null>(null)
@@ -358,6 +360,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   useEffect(() => {
     void fetchLatestTag().then((tag) => {
       if (tag !== undefined) setLatestTag((prev) => (prev !== undefined ? prev : tag))
+      else setCheckFailed(true)
     })
   }, [])
   const newerTag = latestTag !== undefined && compareSemver(latestTag, PLUGIN_VERSION) > 0 ? latestTag : undefined
@@ -582,6 +585,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
               </button>
             )}
             {updateMsg !== null && <span className={css.updateMsg} title={updateMsg}>{updateMsg}</span>}
+          {checkFailed && newerTag === undefined && updateMsg === null && <span className={css.updateMsg} title="无法连接宿主端点 / GitHub，稍后重开抽屉重试">⚠ 版本检查失败</span>}
             <button type="button" className={css.close} onClick={() => { setOpen(false) }}>{t('close')}</button>
           </div>
           <div className={css.drawerBody} ref={listScrollRef} onScroll={(e) => { listScrollMemoryRef.current = e.currentTarget.scrollTop }}>

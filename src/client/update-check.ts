@@ -31,26 +31,35 @@ export function compareSemver(a: string, b: string): number {
  * @returns the latest vX.Y.Z tag name, or undefined when unreachable.
  */
 async function latestFromTags(): Promise<string | undefined> {
-  const res = await fetch(`https://api.github.com/repos/${MIRROR}/tags?per_page=10`, {
-    headers: { accept: 'application/vnd.github+json' },
-  })
-  if (!res.ok) return undefined
-  const tags: unknown = await res.json()
-  if (!Array.isArray(tags)) return undefined
-  const stable = tags
-    .map((entry) => (entry as GithubTag).name)
-    .filter((name): name is string => typeof name === 'string' && /^v\d+\.\d+\.\d+$/.test(name))
-  if (stable.length === 0) return undefined
-  return stable.reduce((newest, tag) => (compareSemver(tag, newest) > 0 ? tag : newest))
+  try {
+    const res = await fetch(`https://api.github.com/repos/${MIRROR}/tags?per_page=10`, {
+      headers: { accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return undefined
+    const tags: unknown = await res.json()
+    if (!Array.isArray(tags)) return undefined
+    const stable = tags
+      .map((entry) => (entry as GithubTag).name)
+      .filter((name): name is string => typeof name === 'string' && /^v\d+\.\d+\.\d+$/.test(name))
+    if (stable.length === 0) return undefined
+    return stable.reduce((newest, tag) => (compareSemver(tag, newest) > 0 ? tag : newest))
+  } catch {
+    return undefined
+  }
 }
 
 /** Latest tag from the raw package.json version (CORS-friendly alternate). */
 async function latestFromRaw(): Promise<string | undefined> {
-  const res = await fetch(`https://raw.githubusercontent.com/${MIRROR}/main/package.json`)
-  if (!res.ok) return undefined
-  const pkg: unknown = await res.json()
-  const version = (pkg as { version?: unknown }).version
-  return typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? `v${version}` : undefined
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/${MIRROR}/main/package.json`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return undefined
+    const pkg: unknown = await res.json()
+    const version = (pkg as { version?: unknown }).version
+    return typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? `v${version}` : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /** Write-only host endpoint: same-origin so the browser is never subject to
