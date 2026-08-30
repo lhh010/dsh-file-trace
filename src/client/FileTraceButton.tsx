@@ -12,6 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { extractFileOps, groupByFile, knownContentBefore, parseReadLines, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
+import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
 import { diffLines, formatBytes, buildDiffSegments, diffInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import css from './FileTrace.module.css'
 
@@ -73,6 +74,10 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   })
   const groups = useMemo(() => groupByFile(ops), [ops])
   const [open, setOpen] = useState(false)
+  // Update check: newest tag from the public mirror, once per open.
+  const [latestTag, setLatestTag] = useState<string | undefined>(undefined)
+  const [updating, setUpdating] = useState(false)
+  const [updateMsg, setUpdateMsg] = useState<string | null>(null)
   const [selected, setSelected] = useState<{ path: string; op: FileOp } | null>(null)
   // Long diff lines fold to one ellipsized row; the set holds expanded row keys.
   const [expandedLines, setExpandedLines] = useState<ReadonlySet<string>>(new Set())
@@ -240,6 +245,30 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     return () => { window.removeEventListener('resize', onResize) }
   }, [])
 
+  // Check for a newer tag once per panel open (compare with the running version).
+  useEffect(() => {
+    if (!open || latestTag !== undefined) return
+    void fetchLatestTag().then((tag) => { if (tag !== undefined) setLatestTag(tag) })
+  }, [open, latestTag])
+  const newerTag = latestTag !== undefined && compareSemver(latestTag, PLUGIN_VERSION) > 0 ? latestTag : undefined
+
+  /** One-click update: host endpoint first; on failure, copy the prompt. */
+  const onUpdateClick = (): void => {
+    if (newerTag === undefined || updating) return
+    setUpdating(true)
+    setUpdateMsg(null)
+    void runUpdate(newerTag).then((result) => {
+      setUpdating(false)
+      if (result.ok) {
+        setUpdateMsg(`已更新到 ${newerTag}，请硬刷新浏览器（Ctrl/Cmd+Shift+R）`)
+        return
+      }
+      void navigator.clipboard?.writeText(updatePrompt(newerTag))
+        .then(() => { setUpdateMsg(`自动更新失败（${result.detail.slice(0, 80)}）；已复制更新提示词到剪贴板，粘贴发送即可`) })
+        .catch(() => { setUpdateMsg(`自动更新失败；请手动执行：dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#${newerTag}'`) })
+    })
+  }
+
   // Escape closes the drawer, mirroring platform dialog behavior.
   useEffect(() => {
     if (!open) return
@@ -364,6 +393,12 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
             <span className={css.drawerMeta}>
               {String(groups.size)} {t('files')} · {String(count)} ops
             </span>
+            {newerTag !== undefined && (
+              <button type="button" className={css.updateBadge} data-updating={updating ? 'true' : undefined} onClick={onUpdateClick} title={`一键更新到 ${newerTag}（点击触发；失败则复制提示词）`}>
+                {updating ? '更新中…' : `⟳ 更新到 ${newerTag}`}
+              </button>
+            )}
+            {updateMsg !== null && <span className={css.updateMsg}>{updateMsg}</span>}
             <button type="button" className={css.close} onClick={() => { setOpen(false) }}>{t('close')}</button>
           </div>
           <div className={css.drawerBody}>

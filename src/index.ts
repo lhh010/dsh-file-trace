@@ -1,10 +1,21 @@
 /**
- * File-trace plugin, node half. Pure UI plugin: the empty apply exists so
- * the plugin appears in the host cordis.yml / Loader; the browser half ships
- * via exports["./client"] and does all the tracing and rendering.
+ * File-trace plugin, node half. Registers the self-update endpoint (the
+ * user-initiated one-click update from the browser panel); everything else
+ * lives in the browser half shipped via exports["./client"].
  */
+import type { Context } from '@deepseek-ai/cordis'
+import { registerUpdateEndpoint } from './update-endpoint.ts'
+
 /** Stable Cordis plugin name (matches the manifest id). */
 export const name = '@dsh-external/dsh-file-trace'
 
-/** Host plugin body — no host-side behavior for this surface plugin. */
-export function apply(): void {}
+/** The web server is required before the update endpoint can register. */
+export const inject = ['webServer']
+
+/**
+ * Host plugin body: register the update endpoint.
+ * @param ctx - host context carrying the webServer service.
+ */
+export function apply(ctx: Context): void {
+  registerUpdateEndpoint(ctx)
+}
