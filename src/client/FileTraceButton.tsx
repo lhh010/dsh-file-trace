@@ -203,6 +203,45 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     window.addEventListener('pointerup', onUp)
   }
 
+  /** Resize the floating window from the top edge (bottom edge anchored). */
+  const startWinResizeHT = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = sizeRef.current.h
+    const bottom = posRef.current.y + startH
+    const onMove = (ev: PointerEvent): void => {
+      const h = Math.min(Math.max(startH + (startY - ev.clientY), 200), window.innerHeight - 8)
+      setWinSize(prev => ({ ...prev, h }))
+      setWinPos(prev => ({ ...prev, y: bottom - h }))
+    }
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      saveWin(LS_SIZE, sizeRef.current)
+      saveWin(LS_POS, posRef.current)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  /** Resize the floating window from the right edge (left edge anchored). */
+  const startWinResizeWR = (e: ReactPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = sizeRef.current.w
+    const onMove = (ev: PointerEvent): void => {
+      const w = Math.min(Math.max(startW + (ev.clientX - startX), 360), window.innerWidth - posRef.current.x - 8)
+      setWinSize(prev => ({ ...prev, w }))
+    }
+    const onUp = (): void => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      saveWin(LS_SIZE, sizeRef.current)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
   const onHandleDown = (e: ReactPointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
     const startY = e.clientY

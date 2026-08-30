@@ -100,6 +100,17 @@ function readBody(req: { on: (event: string, listener: (chunk: Buffer) => void) 
  * @param ctx - host context carrying the webServer service.
  */
 export function registerUpdateEndpoint(ctx: Context): void {
+  // A failure to register the endpoint must never fail the host fiber, or the
+  // whole plugin (and its client half) would be marked failed. Swallow it.
+  try {
+    registerSafe(ctx)
+  } catch (error) {
+    ctx.logger?.warn?.(`[dsh-file-trace] update endpoint skipped: ${String((error as Error)?.message ?? error)}`)
+  }
+}
+
+/** Register the routes when ctx.webServer is present. */
+function registerSafe(ctx: Context): void {
   ctx.effect(() => {
     // Read-only: the newest publicly released tag (git ls-remote, no auth).
     const latestDispose = ctx.webServer.register({

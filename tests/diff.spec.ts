@@ -43,12 +43,12 @@ describe('diffLines', () => {
 })
 
 describe('diffInline', () => {
-  it('marks only the changed substring on identical-prefix/suffix lines', () => {
-    const r = diffInline('hello world again', 'hello dsh world again')
+  it('marks only the changed middle on identical-prefix/suffix lines', () => {
+    const r = diffInline('foo bar baz', 'foo qux baz')
     const changedOld = r.old.filter(s => s.changed).map(s => s.text).join('')
     const changedNext = r.next.filter(s => s.changed).map(s => s.text).join('')
-    expect(changedNext).toBe('dsh ')
-    expect(changedOld).toBe('')
+    expect(changedOld).toBe('bar')
+    expect(changedNext).toBe('qux')
   })
 
   it('marks an insertion as changed on the new side only', () => {

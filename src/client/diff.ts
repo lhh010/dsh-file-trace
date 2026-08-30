@@ -203,51 +203,36 @@ const INLINE_MAX = 2000
  * @param newText - the new line.
  * @returns per-side segments marking changed runs.
  */
+/**
+ * Intra-line diff by common prefix/suffix: the shared leading and trailing
+ * characters stay unchanged, and only the differing middle is marked changed
+ * on both sides. This never highlights identical characters and keeps a small
+ * edit inside a long line immediately visible. Pure, no React/DOM.
+ * @param oldText - the old line.
+ * @param newText - the new line.
+ * @returns per-side segments marking changed runs.
+ */
 export function diffInline(oldText: string, newText: string): InlineDiff {
-  const m = oldText.length
-  const n = newText.length
-  if (m > INLINE_MAX || n > INLINE_MAX) {
-    const all = { text: oldText === newText ? newText : newText, changed: oldText !== newText }
-    return { old: [{ text: oldText, changed: oldText !== newText }], next: [{ text: newText, changed: oldText !== newText }] }
+  const minLen = Math.min(oldText.length, newText.length)
+  let prefix = 0
+  while (prefix < minLen && oldText[prefix] === newText[prefix]) prefix += 1
+  let suffix = 0
+  while (suffix < minLen - prefix && oldText[oldText.length - 1 - suffix] === newText[newText.length - 1 - suffix]) suffix += 1
+  const oldMidStart = prefix
+  const oldMidEnd = oldText.length - suffix
+  const newMidStart = prefix
+  const newMidEnd = newText.length - suffix
+  const segments = (text: string, midStart: number, midEnd: number): InlineSegment[] => {
+    const out: InlineSegment[] = []
+    if (midStart > 0) out.push({ text: text.slice(0, midStart), changed: false })
+    const mid = text.slice(midStart, midEnd)
+    if (mid.length > 0) out.push({ text: mid, changed: true })
+    if (midEnd < text.length) out.push({ text: text.slice(midEnd), changed: false })
+    return out
   }
-  // LCS length table over characters.
-  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0))
-  for (let i = m - 1; i >= 0; i -= 1) {
-    for (let j = n - 1; j >= 0; j -= 1) {
-      dp[i]![j] = oldText[i] === newText[j]
-        ? dp[i + 1]![j + 1]! + 1
-        : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!)
-    }
-  }
-  const oldSegs: InlineSegment[] = []
-  const nextSegs: InlineSegment[] = []
-  let i = 0
-  let j = 0
-  let oBuf = ''
-  let nBuf = ''
-  let oChanged = false
-  let nChanged = false
-  const flushOld = (): void => { if (oBuf.length > 0) { oldSegs.push({ text: oBuf, changed: oChanged }); oBuf = ''; oChanged = false } }
-  const flushNext = (): void => { if (nBuf.length > 0) { nextSegs.push({ text: nBuf, changed: nChanged }); nBuf = ''; nChanged = false } }
-  while (i < m && j < n) {
-    if (oldText[i] === newText[j]) {
-      flushOld(); flushNext()
-      oldSegs.push({ text: oldText[i]!, changed: false })
-      nextSegs.push({ text: newText[j]!, changed: false })
-      i += 1; j += 1
-    } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) {
-      oBuf += oldText[i]!; oChanged = true; flushNext(); i += 1
-    } else {
-      nBuf += newText[j]!; nChanged = true; flushOld(); j += 1
-    }
-  }
-  flushOld(); flushNext()
-  while (i < m) { oBuf += oldText[i]!; oChanged = true; i += 1; flushOld() }
-  while (j < n) { nBuf += newText[j]!; nChanged = true; j += 1; flushNext() }
-  return { old: oldSegs, next: nextSegs }
+  return { old: segments(oldText, oldMidStart, oldMidEnd), next: segments(newText, newMidStart, newMidEnd) }
 }
 
-/** Human byte count for the panel meta row. */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${String(bytes)} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
