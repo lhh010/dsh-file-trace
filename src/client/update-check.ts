@@ -81,7 +81,7 @@ export function updatePrompt(tag: string): string {
 }
 
 /** Result of the one-click update attempt against the host endpoint. */
-export interface UpdateResult { readonly ok: boolean; readonly detail: string }
+export interface UpdateResult { readonly ok: boolean; readonly detail: string; readonly link?: boolean }
 
 /**
  * Trigger the host-side install of the given tag (user-initiated click).
@@ -96,10 +96,11 @@ export async function runUpdate(tag: string): Promise<UpdateResult> {
       body: JSON.stringify({ tag }),
     })
     const body: unknown = await res.json().catch(() => ({}))
-    const parsed = body as { ok?: boolean; output?: string; error?: string }
+    const parsed = body as { ok?: boolean; output?: string; error?: string; link?: boolean }
     return {
       ok: res.ok && parsed.ok === true,
       detail: typeof parsed.output === 'string' ? parsed.output : (parsed.error ?? String(res.status)),
+      link: parsed.link === true,
     }
   } catch (error) {
     return { ok: false, detail: String((error as Error)?.message ?? error) }

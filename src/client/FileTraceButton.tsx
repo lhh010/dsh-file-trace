@@ -265,6 +265,12 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         setUpdateMsg(`已更新到 ${newerTag}，请硬刷新浏览器（Ctrl/Cmd+Shift+R）`)
         return
       }
+      if (result.link) {
+        void navigator.clipboard?.writeText(updatePrompt(newerTag))
+          .then(() => setUpdateMsg(`本地 link 安装：自动更新会断开本地开发链接，已跳过；已把更新提示词复制到剪贴板——若想切换为 git 依赖安装并自动更新，请先以 git 方式安装本插件`))
+          .catch(() => setUpdateMsg(`本地 link 安装：自动更新已跳过。请手动执行：dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#${newerTag}'`))
+        return
+      }
       void navigator.clipboard?.writeText(updatePrompt(newerTag))
         .then(() => { setUpdateMsg(`自动更新失败（${result.detail.slice(0, 80)}）；已复制更新提示词到剪贴板，粘贴发送即可`) })
         .catch(() => { setUpdateMsg(`自动更新失败；请手动执行：dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#${newerTag}'`) })
