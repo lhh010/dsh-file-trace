@@ -16,6 +16,8 @@
 .drawer { position: fixed; z-index: 1200; display: flex; flex-direction: column; background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l1); border-radius: 10px; box-shadow: var(--dsw-shadow-lv3); font-size: 13px; overflow: hidden; }
 .drawerHead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); cursor: move; user-select: none; touch-action: none; }
 .resizeW { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 2; touch-action: none; }
+.resizeT { position: absolute; left: 0; right: 0; top: 0; height: 6px; cursor: ns-resize; z-index: 2; touch-action: none; }
+.resizeR { position: absolute; top: 0; bottom: 0; right: 0; width: 6px; cursor: ew-resize; z-index: 2; touch-action: none; }
 .resizeH { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; cursor: ns-resize; z-index: 2; touch-action: none; }
 .resizeW:hover, .resizeH:hover { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 35%, transparent); }
 .drawerTitle { font-weight: 600; color: var(--dsw-alias-label-primary); }

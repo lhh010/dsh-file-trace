@@ -459,6 +459,24 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
               aria-orientation="horizontal"
             />
           )}
+          {docked ? null : (
+            <div
+              className={css.resizeT}
+              data-ft-resize-t
+              onPointerDown={startWinResizeHT}
+              role="separator"
+              aria-orientation="horizontal"
+            />
+          )}
+          {docked ? null : (
+            <div
+              className={css.resizeR}
+              data-ft-resize-r
+              onPointerDown={startWinResizeWR}
+              role="separator"
+              aria-orientation="vertical"
+            />
+          )}
           <div className={css.drawerHead} onPointerDown={startWinDrag}>
             <span className={css.drawerTitle}>{t('title')}</span>
             <span className={css.drawerMeta}>
