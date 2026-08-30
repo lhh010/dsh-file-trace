@@ -407,7 +407,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                 {updating ? '更新中…' : `⟳ 更新到 ${newerTag}`}
               </button>
             )}
-            {updateMsg !== null && <span className={css.updateMsg}>{updateMsg}</span>}
+            {updateMsg !== null && <span className={css.updateMsg} title={updateMsg}>{updateMsg}</span>}
             <button type="button" className={css.close} onClick={() => { setOpen(false) }}>{t('close')}</button>
           </div>
           <div className={css.drawerBody}>

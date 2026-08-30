@@ -9,7 +9,7 @@
  *   click in the browser panel.
  */
 import { execFileSync, spawn } from 'node:child_process'
-import { lstat } from 'node:fs/promises'
+import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
@@ -52,10 +52,10 @@ function latestFromGit(): string | undefined {
 /** True when the installed package is a local link (pnpm stores links as
  * symlinks/junctions whose real path differs from the node_modules path).
  * A link install must stay local: auto-update would sever it. */
-async function isLinkInstall(): Promise<boolean> {
+function isLinkInstall(): boolean {
   try {
     const p = resolve(dshHomePath('profiles', 'web', 'node_modules', '@dsh-external'), 'dsh-file-trace')
-    const real = await lstat(p).then(() => import('node:fs').then(fs => fs.realpathSync(p)))
+    const real = realpathSync(p)
     return real !== resolve(p)
   } catch {
     return false
@@ -71,10 +71,14 @@ function runInstall(tag: string): Promise<{ ok: boolean; output: string }> {
       { cwd: dshHomePath('profiles', 'web'), shell: true },
     )
     let output = ''
+    let settled = false
+    const settle = (value: { ok: boolean; output: string }): void => { if (settled) return; settled = true; resolve(value) }
+    // Never let the install hang the response: kill it after two minutes.
+    const timer = setTimeout(() => { try { child.kill() } catch { /* already gone */ }; settle({ ok: false, output: `${output}安装超时（120s）` }) }, 120_000)
     child.stdout?.on('data', (chunk: Buffer) => { output += chunk.toString() })
     child.stderr?.on('data', (chunk: Buffer) => { output += chunk.toString() })
-    child.on('error', (error) => { resolve({ ok: false, output: `${output}${String(error)}` }) })
-    child.on('close', (code) => { resolve({ ok: code === 0, output }) })
+    child.on('error', (error) => { clearTimeout(timer); settle({ ok: false, output: `${output}${String(error)}` }) })
+    child.on('close', (code) => { clearTimeout(timer); settle({ ok: code === 0, output }) })
   })
 }
 

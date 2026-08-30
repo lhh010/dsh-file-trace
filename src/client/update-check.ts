@@ -57,7 +57,7 @@ async function latestFromRaw(): Promise<string | undefined> {
  * GitHub CORS; falls back to the GitHub sources when the host half is absent. */
 async function latestFromHost(): Promise<string | undefined> {
   try {
-    const res = await fetch('/dsh-file-trace/latest', { method: 'GET' })
+    const res = await fetch('/dsh-file-trace/latest', { method: 'GET', signal: AbortSignal.timeout(20000) })
     if (!res.ok) return undefined
     const body: unknown = await res.json()
     const latest = (body as { latest?: string }).latest
@@ -94,6 +94,7 @@ export async function runUpdate(tag: string): Promise<UpdateResult> {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ tag }),
+      signal: AbortSignal.timeout(20000),
     })
     const body: unknown = await res.json().catch(() => ({}))
     const parsed = body as { ok?: boolean; output?: string; error?: string; link?: boolean }
