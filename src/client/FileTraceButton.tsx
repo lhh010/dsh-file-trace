@@ -96,6 +96,8 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // that op's own position instead of jumping to the top each time.
   const scrollPaneRef = useRef<HTMLDivElement>(null)
   const scrollMemoryRef = useRef(new Map<string, number>())
+  const listScrollRef = useRef<HTMLDivElement>(null)
+  const listScrollMemoryRef = useRef<number | undefined>(undefined)
 
   // Floating-window geometry (like dsh-minigames): position by header drag,
   // size by edge drags; persisted in localStorage.
@@ -384,6 +386,14 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     el.scrollTop = saved ?? 0
   }, [selectedOp, open])
 
+  // Keep the file-list scroll position when selecting an op (don't jump to top).
+  useEffect(() => {
+    const el = listScrollRef.current
+    if (el === null) return
+    const saved = listScrollMemoryRef.current
+    if (saved !== undefined) el.scrollTop = saved
+  }, [selectedOp])
+
   // One diff row: colored sign + text, with the long-line fold toggle.
   const renderDiffRow = (row: DiffRow, rowKey: string): ReactElement => {
     const isLong = row.text.length > FOLD_THRESHOLD
@@ -502,7 +512,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
             {updateMsg !== null && <span className={css.updateMsg} title={updateMsg}>{updateMsg}</span>}
             <button type="button" className={css.close} onClick={() => { setOpen(false) }}>{t('close')}</button>
           </div>
-          <div className={css.drawerBody}>
+          <div className={css.drawerBody} ref={listScrollRef} onScroll={(e) => { listScrollMemoryRef.current = e.currentTarget.scrollTop }}>
             {count === 0 && <div className={css.empty}>{t('empty')}</div>}
             {[...groups.entries()].map(([path, fileOps]) => (
               <div key={path} className={css.fileGroup}>
