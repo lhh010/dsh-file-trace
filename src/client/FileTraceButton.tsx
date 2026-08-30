@@ -92,6 +92,10 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // Bottom diff pane height in px; drag the handle to resize (min/max clamp).
   const [diffHeight, setDiffHeight] = useState(340)
   const diffPaneRef = useRef<HTMLDivElement>(null)
+  // Per-selected-op scroll memory for the diff/read pane: switching ops restores
+  // that op's own position instead of jumping to the top each time.
+  const scrollPaneRef = useRef<HTMLDivElement>(null)
+  const scrollMemoryRef = useRef(new Map<string, number>())
 
   // Floating-window geometry (like dsh-minigames): position by header drag,
   // size by edge drags; persisted in localStorage.
@@ -372,6 +376,14 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // Reset folding when selecting a different operation (the row indexes change).
   useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()) }, [selectedOp])
 
+  // Restore this op's own diff/read scroll position (new ops start at top).
+  useEffect(() => {
+    const el = scrollPaneRef.current
+    if (el === null) return
+    const saved = scrollMemoryRef.current.get(selectedOp?.callId ?? '')
+    el.scrollTop = saved ?? 0
+  }, [selectedOp, open])
+
   // One diff row: colored sign + text, with the long-line fold toggle.
   const renderDiffRow = (row: DiffRow, rowKey: string): ReactElement => {
     const isLong = row.text.length > FOLD_THRESHOLD
@@ -530,7 +542,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
               </div>
               {selected.op.kind === 'read'
                 ? (
-                  <div className={css.readContent} data-file-trace-read data-error={selected.op.isError ? 'true' : undefined}>
+                  <div className={css.readContent} data-file-trace-read data-error={selected.op.isError ? 'true' : undefined} ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                     {selected.op.isError
                       ? (
                         <div className={css.readError} role="alert">
@@ -546,7 +558,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                   </div>
                 )
                 : (
-                  <div className={css.diffRows}>
+                  <div className={css.diffRows} ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                     {selected.op.kind === 'write'
                       && knownContentBefore(ops, selected.path, selected.op) === undefined
                       && <div className={css.priorUnknown}>{t('diff.priorUnknown')}</div>}
