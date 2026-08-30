@@ -30,21 +30,38 @@ export function compareSemver(a: string, b: string): number {
  * Fetch the newest stable tag from the public mirror; undefined on failure.
  * @returns the latest vX.Y.Z tag name, or undefined when unreachable.
  */
+async function latestFromTags(): Promise<string | undefined> {
+  const res = await fetch(`https://api.github.com/repos/${MIRROR}/tags?per_page=10`, {
+    headers: { accept: 'application/vnd.github+json' },
+  })
+  if (!res.ok) return undefined
+  const tags: unknown = await res.json()
+  if (!Array.isArray(tags)) return undefined
+  const stable = tags
+    .map((entry) => (entry as GithubTag).name)
+    .filter((name): name is string => typeof name === 'string' && /^v\d+\.\d+\.\d+$/.test(name))
+  if (stable.length === 0) return undefined
+  return stable.reduce((newest, tag) => (compareSemver(tag, newest) > 0 ? tag : newest))
+}
+
+/** Latest tag from the raw package.json version (CORS-friendly alternate). */
+async function latestFromRaw(): Promise<string | undefined> {
+  const res = await fetch(`https://raw.githubusercontent.com/${MIRROR}/main/package.json`)
+  if (!res.ok) return undefined
+  const pkg: unknown = await res.json()
+  const version = (pkg as { version?: unknown }).version
+  return typeof version === 'string' && /^\d+\.\d+\.\d+$/.test(version) ? `v${version}` : undefined
+}
+
 export async function fetchLatestTag(): Promise<string | undefined> {
   try {
-    const res = await fetch(`https://api.github.com/repos/${MIRROR}/tags?per_page=10`, {
-      headers: { accept: 'application/vnd.github+json' },
-    })
-    if (!res.ok) return undefined
-    const tags: unknown = await res.json()
-    if (!Array.isArray(tags)) return undefined
-    const stable = tags
-      .map((entry) => (entry as GithubTag).name)
-      .filter((name): name is string => typeof name === 'string' && /^v\d+\.\d+\.\d+$/.test(name))
-    if (stable.length === 0) return undefined
-    return stable.reduce((newest, tag) => (compareSemver(tag, newest) > 0 ? tag : newest))
+    return (await latestFromTags()) ?? (await latestFromRaw())
   } catch {
-    return undefined
+    try {
+      return await latestFromRaw()
+    } catch {
+      return undefined
+    }
   }
 }
 

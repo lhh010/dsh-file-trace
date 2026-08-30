@@ -9,6 +9,7 @@
 .updateBadge { flex: none; border: 1px solid var(--dsw-alias-state-business-primary); border-radius: 8px; background: transparent; color: var(--dsh-alias-state-business-primary); font: inherit; font-size: 11px; line-height: 20px; padding: 0 8px; cursor: pointer; }
 .updateBadge:hover { background: var(--dsw-alias-state-business-tertiary); }
 .updateBadge[data-updating='true'] { opacity: 0.6; cursor: wait; }
+.updateDot { min-width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-bg-base); font-size: 11px; line-height: 1; }
 .updateMsg { flex: none; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dsw-alias-label-caption); font-size: 11px; }
 .badge { min-width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-bg-base); font-size: 11px; padding: 0 5px; }
 

@@ -245,11 +245,13 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     return () => { window.removeEventListener('resize', onResize) }
   }, [])
 
-  // Check for a newer tag once per panel open (compare with the running version).
+  // Check for a newer tag once on mount (the trigger button shows a ⟳ dot
+  // when one exists); the drawer head reuses the same state.
   useEffect(() => {
-    if (!open || latestTag !== undefined) return
-    void fetchLatestTag().then((tag) => { if (tag !== undefined) setLatestTag(tag) })
-  }, [open, latestTag])
+    void fetchLatestTag().then((tag) => {
+      if (tag !== undefined) setLatestTag((prev) => (prev !== undefined ? prev : tag))
+    })
+  }, [])
   const newerTag = latestTag !== undefined && compareSemver(latestTag, PLUGIN_VERSION) > 0 ? latestTag : undefined
 
   /** One-click update: host endpoint first; on failure, copy the prompt. */
@@ -362,6 +364,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
       >
         <span className={css.triggerLabel}>{t('title')}</span>
         {count > 0 && <span className={css.badge}>{String(count)}</span>}
+        {newerTag !== undefined && <span className={css.updateDot} title={`新版本 ${newerTag} 可用`}>⟳</span>}
       </button>
       {open && (
         <div
