@@ -66,7 +66,7 @@ async function latestFromRaw(): Promise<string | undefined> {
  * GitHub CORS; falls back to the GitHub sources when the host half is absent. */
 async function latestFromHost(): Promise<string | undefined> {
   try {
-    const res = await fetch('/dsh-file-trace/latest', { method: 'GET', signal: AbortSignal.timeout(20000) })
+    const res = await fetch('/dsh-file-trace/latest', { method: 'GET', signal: AbortSignal.timeout(9000) })
     if (!res.ok) return undefined
     const body: unknown = await res.json()
     const latest = (body as { latest?: string }).latest
@@ -77,7 +77,10 @@ async function latestFromHost(): Promise<string | undefined> {
 }
 
 export async function fetchLatestTag(): Promise<string | undefined> {
-  return (await latestFromHost()) ?? (await latestFromTags()) ?? (await latestFromRaw())
+  // All sources race in parallel: total latency is the slowest one instead of
+  // their sum, so an offline machine shows the failure notice within seconds.
+  const [host, tags, raw] = await Promise.all([latestFromHost(), latestFromTags(), latestFromRaw()])
+  return host ?? tags ?? raw
 }
 
 /** The update prompt used by the composer fallback path. */
@@ -103,7 +106,7 @@ export async function runUpdate(tag: string): Promise<UpdateResult> {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ tag }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(130000),
     })
     const body: unknown = await res.json().catch(() => ({}))
     const parsed = body as { ok?: boolean; output?: string; error?: string; link?: boolean }
