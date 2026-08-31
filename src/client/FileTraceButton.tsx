@@ -373,7 +373,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     void runUpdate(newerTag).then((result) => {
       setUpdating(false)
       if (result.ok) {
-        setUpdateMsg(`已更新到 ${newerTag}，请硬刷新浏览器（Ctrl/Cmd+Shift+R）`)
+        setUpdateMsg(result.hostChanged === true ? `已更新到 ${newerTag}（含宿主侧变更），请重启 dsh 生效` : `已更新到 ${newerTag}，客户端自动刷新生效（未见变化可硬刷新）`)
         return
       }
       if (result.link) {
@@ -383,7 +383,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         return
       }
       void navigator.clipboard?.writeText(updatePrompt(newerTag))
-        .then(() => { setUpdateMsg(`自动更新失败（${result.detail.slice(0, 80)}）；已复制更新提示词到剪贴板，粘贴发送即可`) })
+        .then(() => { setUpdateMsg(`自动更新失败（${result.detail.slice(0, 80)}）；已复制更新提示词到剪贴板，粘贴发送即可${result.recovery !== undefined ? `；恢复命令：${result.recovery}` : ''}`) })
         .catch(() => { setUpdateMsg(`自动更新失败；请手动执行：dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#${newerTag}'`) })
     })
   }

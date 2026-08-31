@@ -93,7 +93,7 @@ export function updatePrompt(tag: string): string {
 }
 
 /** Result of the one-click update attempt against the host endpoint. */
-export interface UpdateResult { readonly ok: boolean; readonly detail: string; readonly link?: boolean }
+export interface UpdateResult { readonly ok: boolean; readonly detail: string; readonly link?: boolean; readonly recovery?: string; readonly hostChanged?: boolean }
 
 /**
  * Trigger the host-side install of the given tag (user-initiated click).
@@ -104,16 +104,18 @@ export async function runUpdate(tag: string): Promise<UpdateResult> {
   try {
     const res = await fetch('/dsh-file-trace/update', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'x-dsh-plugin-update': 'click' },
       body: JSON.stringify({ tag }),
       signal: AbortSignal.timeout(130000),
     })
     const body: unknown = await res.json().catch(() => ({}))
-    const parsed = body as { ok?: boolean; output?: string; error?: string; link?: boolean }
+    const parsed = body as { ok?: boolean; output?: string; error?: string; link?: boolean; recovery?: string; hostChanged?: boolean }
     return {
       ok: res.ok && parsed.ok === true,
       detail: typeof parsed.output === 'string' ? parsed.output : (parsed.error ?? String(res.status)),
       link: parsed.link === true,
+      ...(typeof parsed.recovery === 'string' ? { recovery: parsed.recovery } : {}),
+      ...(parsed.hostChanged === true ? { hostChanged: true } : {}),
     }
   } catch (error) {
     return { ok: false, detail: String((error as Error)?.message ?? error) }

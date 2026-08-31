@@ -9,6 +9,8 @@
  *   click in the browser panel.
  */
 import { execFile, spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
@@ -107,6 +109,17 @@ function readBody(req: { on: (event: string, listener: (chunk: Buffer) => void) 
   })
 }
 
+/** SHA-256 of the installed host bundle; undefined when absent. Compared before/after
+ * an install so the client only asks for a dsh restart when the host half changed. */
+function hostBundleHash(): string | undefined {
+  try {
+    const scopeDir = PACKAGE_SPEC.slice(0, PACKAGE_SPEC.indexOf('/'))
+    const pkgDir = PACKAGE_SPEC.slice(PACKAGE_SPEC.indexOf('/') + 1)
+    const p = resolve(dshHomePath('profiles', 'web', 'node_modules'), scopeDir, pkgDir, 'lib', 'index.js')
+    return createHash('sha256').update(readFileSync(p)).digest('hex')
+  } catch { return undefined }
+}
+
 /**
  * Register the update endpoint on the web server (an effect of the host
  * plugin's apply, so disposal rides the host fiber).
@@ -147,6 +160,11 @@ function registerSafe(ctx: Context): void {
           res.end(body)
         }
         if (req.method !== 'POST') { send(405, { ok: false, error: 'method not allowed' }); return }
+        // R-12 边界：宿主路由无鉴权，安装动作要求客户端专用头 + 同源 Origin 双保险。
+        const clickToken = req.headers['x-dsh-plugin-update']
+        const originHeader = req.headers.origin
+        const sameOrigin = originHeader === undefined || (typeof originHeader === 'string' && originHeader === `http://${ctx.webServer.host}:${String(ctx.webServer.port)}`)
+        if (clickToken !== 'click' || !sameOrigin) { send(403, { ok: false, error: 'forbidden: update requires the same-origin click header' }); return }
         try {
           const parsed: unknown = JSON.parse(await readBody(req))
           const tag = (parsed as { tag?: unknown }).tag
@@ -154,8 +172,9 @@ function registerSafe(ctx: Context): void {
             send(400, { ok: false, error: 'invalid tag' }); return
           }
           if (await isLinkInstall()) { send(200, { ok: false, link: true, tag }); return }
+          const hashBefore = hostBundleHash()
           const result = await runInstall(tag)
-          send(result.ok ? 200 : 500, { ok: result.ok, output: result.output.slice(-4000), tag })
+          send(result.ok ? 200 : 500, { ok: result.ok, output: result.output.slice(-4000), tag, hostChanged: result.ok && hashBefore !== hostBundleHash(), ...(result.ok ? {} : { recovery: `dsh plugin --profile web add '${PACKAGE_SPEC}@github:${MIRROR}#${tag}'` }) })
         } catch (error) {
           send(400, { ok: false, error: String((error as Error)?.message ?? error) })
         }
