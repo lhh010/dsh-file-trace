@@ -4,6 +4,9 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 [English](./README.en.md) | **简体中文**
 
+> **你的 DSH 版本决定装哪个插件版本**（装错会崩：常见症状 `useConversation is not a function`）
+> - DSH **0.1.1-rc.2**：本插件按 **alpha.x** 编写，rc.2 下**无可用版本**
+> - DSH **0.1.2-alpha.1 / alpha.2**：装**新版**（下方默认命令）
 ## 安装（profile 模式）
 
 ```sh

@@ -4,6 +4,9 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 **English** | [简体中文](./README.md)
 
+> **Pick the plugin version that matches your DSH** (a mismatch crashes: common symptom `useConversation is not a function`)
+> - DSH **0.1.1-rc.2**: this plugin targets **alpha.x** only; no version for rc.2
+> - DSH **0.1.2-alpha.1 / alpha.2**: install the **new** version (the default command below)
 ## Install (profile mode)
 
 ```sh
