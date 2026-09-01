@@ -1,17 +1,19 @@
 # @dsh-external/dsh-file-trace
 
+
+> 兼容 DSH `dsh-v0.1.2-alpha.3`（typecheck/build + 50 单测全绿，实机验证；本插件基于 alpha.1+ 编写，rc.2 下无可用版本）
 DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看模型读取、写入、编辑的每一个文件**。会话标题栏工具区出现「文件追踪」按钮（带操作数徽标），点击打开浮动窗口，按文件分组列出全部操作，点选任意操作查看带行号的内容或**逐行 diff**。零核心改动，纯浏览器 half 插件。
 
 [English](./README.en.md) | **简体中文**
 
 > **你的 DSH 版本决定装哪个插件版本**（装错会崩：常见症状 `useConversation is not a function`）
 > - DSH **0.1.1-rc.2**：本插件按 **alpha.x** 编写，rc.2 下**无可用版本**
-> - DSH **0.1.2-alpha.1 / alpha.2**：装**新版**（下方默认命令）
+> - DSH **0.1.2-alpha.1 / alpha.2 / alpha.3**：装**新版**（下方默认命令）
 ## 安装（profile 模式）
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.7'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.8'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +36,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.7'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.8'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -91,3 +93,4 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 - 编辑的"完整文件上下文"依赖窗口内更早的**同一文件**写入/读取内容；若无，则仅显示模型提供的 old_string/new_string 片段。
 - 行级 diff + 行内字符级高亮；语法高亮为轻量正则分词（无语法树），多行块注释状态按行序推导、跨行正确着色，复杂构造可能不完全精确。
 - 中英文 README 一致性记录见 `README.i18n.yaml`。
+
