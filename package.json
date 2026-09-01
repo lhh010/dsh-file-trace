@@ -1,6 +1,6 @@
 {
   "name": "@dsh-external/dsh-file-trace",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "description": "DSH Web UI 文件追踪插件：记录模型读取/写入/编辑的文件，会话标题栏一键查看变更列表与逐行 diff（删除红、新增绿、修改蓝）",
@@ -29,7 +29,7 @@
     "src"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node scripts/build-mermaid-chunk.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
@@ -38,6 +38,7 @@
     "react": "^18.2.0"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "link:../.dsh/source/current/vendor/cordis",
     "@deepseek-ai/dsh-api-session-controller": "link:../.dsh/source/current/packages/api/session-controller",
     "@deepseek-ai/dsh-client-locale": "link:../.dsh/source/current/packages/client/locale",
     "@deepseek-ai/dsh-client-ui-chat": "link:../.dsh/source/current/packages/client/ui-chat",
@@ -45,16 +46,17 @@
     "@deepseek-ai/dsh-client-ui-renderer": "link:../.dsh/source/current/packages/client/ui-renderer",
     "@deepseek-ai/dsh-client-ui-session": "link:../.dsh/source/current/packages/client/ui-session",
     "@deepseek-ai/dsh-client-ui-slots": "link:../.dsh/source/current/packages/client/ui-slots",
-    "@deepseek-ai/dsh-invariants": "link:../.dsh/source/current/packages/runtime-diagnostics/invariants",
     "@deepseek-ai/dsh-home-paths": "link:../.dsh/source/current/packages/util/home-paths",
     "@deepseek-ai/dsh-host-webserver": "link:../.dsh/source/current/packages/host/webserver",
-    "@types/node": "^22.10.2",
+    "@deepseek-ai/dsh-invariants": "link:../.dsh/source/current/packages/runtime-diagnostics/invariants",
     "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.10.2",
     "@types/react": "~18.3.1",
     "@types/react-dom": "^18.3.1",
-    "@deepseek-ai/cordis": "link:../.dsh/source/current/vendor/cordis",
+    "esbuild": "^0.28.2",
     "jsdom": "^26.0.0",
     "lightningcss": "^1.32.0",
+    "mermaid": "^11.17.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.2",

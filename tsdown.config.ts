@@ -142,4 +142,5 @@ export default [
       intro: 'var module = { exports: {} }; var exports = module.exports;',
     },
   },
+
 ] satisfies UserConfig[]

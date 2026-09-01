@@ -147,6 +147,8 @@
 .mdTable tr:nth-child(even) td { background: color-mix(in srgb, var(--dsw-alias-interactive-bg-muted, transparent) 45%, transparent); }
 .mdImg { max-width: 100%; border-radius: 8px; margin: 4px 0; }
 .mdFileChip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 6px; padding: 0 6px; font-size: 12px; font-family: var(--dsw-mono-font, ui-monospace, monospace); color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-interactive-bg-muted, var(--dsw-alias-border-l1)); }
+.mdMermaid { margin: 0.8em 0; overflow-x: auto; text-align: center; background: var(--dsw-alias-bg-base); border-radius: 8px; padding: 6px 0; }
+.mdMermaid svg { max-width: 100%; height: auto; }
 .mdWiki { color: var(--dsw-alias-state-business-primary); border-bottom: 1px dashed var(--dsw-alias-state-business-primary); }
 .mdMath { font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; font-style: italic; padding: 0 1px; }
 .mdMathBlock { margin: 0.8em 0; padding: 8px 4px; text-align: center; font-family: 'Cambria Math', 'STIX Two Math', Georgia, serif; font-style: italic; font-size: 1.15em; white-space: pre-wrap; }

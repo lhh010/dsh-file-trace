@@ -6,6 +6,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { registerUpdateEndpoint } from './update-endpoint.ts'
 import { registerAssetEndpoint } from './asset-endpoint.ts'
+import { registerChunkRoute } from './chunk-route.ts'
 
 /** Stable Cordis plugin name (matches the manifest id). */
 export const name = '@dsh-external/dsh-file-trace'
@@ -20,4 +21,5 @@ export const inject = ['webServer']
 export function apply(ctx: Context): void {
   registerUpdateEndpoint(ctx)
   registerAssetEndpoint(ctx)
+  registerChunkRoute(ctx)
 }

@@ -157,6 +157,16 @@ describe('MarkdownView', () => {
     expect(screen.getByText('second note')).toBeTruthy()
   })
 
+  it('renders a mermaid fence as a code block when the chunk cannot load', () => {
+    // In jsdom the /dsh-file-trace/resources/mermaid-chunk.js import fails
+    // (no server), so the lazy renderer must fall back to the code block.
+    const src = ['```mermaid', 'graph TD;', '  A-->B', '```'].join('\n')
+    render(<MarkdownView src={src} />)
+    const block = document.querySelector('[data-file-trace-md] pre[data-lang="mermaid"]')
+    expect(block).not.toBeNull()
+    expect(block?.textContent).toContain('graph TD')
+  })
+
   it('falls back to a file chip for local-path images', () => {
     render(<MarkdownView src={'![pic](./images/photo.png)'} />)
     expect(screen.getByText('photo.png')).toBeTruthy()

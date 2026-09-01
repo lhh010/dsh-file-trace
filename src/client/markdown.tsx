@@ -9,7 +9,7 @@
  * angle autolinks, raw <img> tags, Obsidian wiki links, image embeds (URL or
  * local file via the host asset route) and generic file embeds.
  */
-import { useMemo, type ReactElement, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react'
 import css from './FileTrace.module.css'
 
 /** Rendering context threaded through the inline/block renderers. */
@@ -18,6 +18,42 @@ interface Rctx {
   readonly baseDir?: string
   /** Footnote id -> display number (assigned in definition order). */
   readonly footnotes?: ReadonlyMap<string, number>
+}
+
+/** Host route serving the lazily-loaded mermaid chunk (and its per-diagram
+ *  dynamic imports). Imported only when a ```mermaid fence is rendered. */
+const MERMAID_CHUNK_URL = '/dsh-file-trace/resources/mermaid-chunk.js'
+let chunkPromise: Promise<{ renderMermaid: (code: string) => Promise<string> }> | undefined
+function loadMermaidChunk(): Promise<{ renderMermaid: (code: string) => Promise<string> }> {
+  // A failed import is NOT cached, so a transient offline/reload retries;
+  // a success is cached to avoid reloading the heavy chunk per fence.
+  chunkPromise = (chunkPromise ?? import(MERMAID_CHUNK_URL)) as Promise<{ renderMermaid: (code: string) => Promise<string> }>
+  return chunkPromise
+}
+/** Render one mermaid fence lazily; on any failure fall back to the code block. */
+function MermaidBlock({ code }: { readonly code: string }): ReactElement {
+  const [svg, setSvg] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let alive = true
+    setSvg(null)
+    setFailed(false)
+    loadMermaidChunk()
+      .then((mod) => mod.renderMermaid(code))
+      .then((out) => { if (alive) setSvg(out) })
+      .catch((cause) => {
+        if (!alive) return
+        // Diag: surface WHY the lazy render fell back (chunk 404 / offline vs
+        // a render throw) so the failure is fixable instead of silent.
+        console.warn('[dsh-file-trace] mermaid chunk fell back to code block:', cause)
+        setFailed(true)
+      })
+    return () => { alive = false }
+  }, [code])
+  if (failed || svg === null) {
+    return <pre key="mdmermaid" className={css.mdPre} data-lang="mermaid" data-mermaid-state={failed ? 'failed' : 'loading'}><code>{code}</code></pre>
+  }
+  return <div key="mdmermaid" data-mermaid-state="rendered" className={css.mdMermaid} dangerouslySetInnerHTML={{ __html: svg }} />
 }
 
 /** True when a traced path is a markdown source this renderer handles. */
@@ -525,6 +561,9 @@ function renderBlock(b: Block, key: string, rctx: Rctx): ReactElement {
     case 'para':
       return <p key={key} className={css.mdP}>{renderInline(b.text, key, rctx)}</p>
     case 'code':
+      if (b.lang.toLowerCase() === 'mermaid') {
+        return <MermaidBlock key={key} code={b.text} />
+      }
       return (
         <pre key={key} className={css.mdPre} data-lang={b.lang || undefined}>
           <code>{b.text}</code>
