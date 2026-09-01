@@ -18,6 +18,8 @@ export type FileTraceKey =
   | 'diff.mod'
   | 'diff.priorUnknown'
   | 'diff.fold'
+  | 'md.read'
+  | 'md.raw'
   | 'meta.bytes'
 
 export const zh: Record<FileTraceKey, string> = {
@@ -39,6 +41,8 @@ export const zh: Record<FileTraceKey, string> = {
   'diff.mod': '修改',
   'diff.priorUnknown': '（变更前的内容不在当前窗口，显示为全新增）',
   'diff.fold': '{count} 行…点击展开',
+  'md.read': '阅读',
+  'md.raw': '原文',
   'meta.bytes': '{bytes}',
 }
 
@@ -61,5 +65,7 @@ export const en: Record<FileTraceKey, string> = {
   'diff.mod': 'modified',
   'diff.priorUnknown': '(prior content outside the loaded window; shown all-added)',
   'diff.fold': '{count} lines…click to expand',
+  'md.read': 'Reading',
+  'md.raw': 'Raw',
   'meta.bytes': '{bytes}',
 }

@@ -1,7 +1,7 @@
 # @dsh-external/dsh-file-trace
 
 
-> 兼容 DSH `dsh-v0.1.2-alpha.3`（typecheck/build + 50 单测全绿，实机验证；本插件基于 alpha.1+ 编写，rc.2 下无可用版本）
+> 兼容 DSH `dsh-v0.1.2-alpha.3`（typecheck/build + 62 单测全绿，实机验证；本插件基于 alpha.1+ 编写，rc.2 下无可用版本）
 DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看模型读取、写入、编辑的每一个文件**。会话标题栏工具区出现「文件追踪」按钮（带操作数徽标），点击打开浮动窗口，按文件分组列出全部操作，点选任意操作查看带行号的内容或**逐行 diff**。零核心改动，纯浏览器 half 插件。
 
 [English](./README.en.md) | **简体中文**
@@ -13,7 +13,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.8'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.0'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -36,7 +36,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.1.8'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.0'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -46,6 +46,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 - **操作记录**：提取模型对文件的读取 / 写入 / 编辑，含执行中、出错标记、时间与载荷大小（递归覆盖 run_code 等宿主工具的子调用）。
 - **读取视图**：显示被读取文件的**真实内容与真实行号**（剥掉 DSH 读工具响应外壳）。
+- **Markdown 阅读模式**：`.md / .markdown / .mdx` 文件的操作视图头部出现「阅读 / 原文」切换按钮（读取 / 写入 / 编辑三种操作均有）；阅读模式以 **Obsidian 风格**渲染完整文档——多级标题、表格（含对齐）、分割线、加粗/斜体/加粗斜体、删除线、高亮 `==`、行内代码、代码块、引用、有序/无序列表与任务清单、链接、`[[Wiki 链接]]`；图片按 URL 渲染，本地路径图片与非图片附件统一显示为带文件名的文件徽标；YAML frontmatter 显示为代码块。编辑操作优先用窗口内已知的前置内容重建变更后的完整文档。
 - **出错统一展示**：读取 / 写入 / 编辑**失败**的操作点开即显示结果里的真实错误文本（红色错误块），不再渲染伪造 diff。
 - **语法高亮**：按扩展名识别常见语言（C/C++、Java、C#、JS/TS、Python、Go、Rust、cmd/batch、PowerShell、JSON/YAML/TOML、SQL 等），读取视图与 diff 行的**关键字 / 字符串 / 数字 / 类型 / 函数 / 注释 / 预处理指令**分别着色；修改行的行内变更底色与着色叠加。
 - **写入视图**：新文件写入显示为**全量新增（每行绿色 +）**；覆盖修改时按真实差异做 del/add。
@@ -65,7 +66,9 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.1.7`（默认） | `dsh-v0.1.2-alpha.1` | 语法高亮（含跨行块注释）；出错统一展示真实错误文本；折叠展开对齐修复；版本号随 tag | 
+| `v0.2.0`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.3` | Markdown 阅读模式（Obsidian 风格渲染，读/写/编辑均可切换） |
+| `v0.1.8` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 更新端点鉴权（x-dsh-plugin-update 头 + 同源校验）与 hostChanged 检测 |
+| `v0.1.7` | `dsh-v0.1.2-alpha.1` | 语法高亮（含跨行块注释）；出错统一展示真实错误文本；折叠展开对齐修复；版本号随 tag | 
 | `v0.1.6` | `dsh-v0.1.2-alpha.1` | 版本检查走宿主同源端点；滚动位置记忆 | 
 | `v0.1.4` | `dsh-v0.1.2-alpha.1` | 自动版本检查 + 点击更新 |
 | `v0.1.3` | `dsh-v0.1.2-alpha.1` | 右缘吸附为右侧栏 + 主对话避让；typecheck、20 个单测、构建全绿 |
@@ -79,7 +82,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 ## 使用说明
 
 1. 会话标题栏右侧工具区点击「文件追踪」。
-2. 窗口按文件分组列出操作（最新在前）；点某个操作：
+2. 窗口按文件分组列出操作（最新在前）；点某个操作（`.md` 文件可点「阅读」切换渲染视图，再点「原文」切回）：
    - **读取** → 带行号的文件内容（出错为红色错误块）；
    - **写入** → 全量新增（绿 +）或真实 del/add；
    - **编辑** → 变更点 ±3 行上下文 + 上下「… N 行」折叠。

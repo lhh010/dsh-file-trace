@@ -10,11 +10,12 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { extractFileOps, groupByFile, knownContentBefore, parseReadLines, type FileOp } from './file-ops.ts'
+import { extractFileOps, groupByFile, knownContentBefore, parseReadContent, parseReadLines, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
 import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
 import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import { scanLine, isColored, langOfPath, hasBlockComment, type TokenType, type CodeToken } from './highlight.ts'
+import { MarkdownView, isMarkdownPath } from './markdown.tsx'
 import css from './FileTrace.module.css'
 
 /** Renders the remediation banner once when the drawer subtree throws. */
@@ -134,6 +135,9 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const [updating, setUpdating] = useState(false)
   const [updateMsg, setUpdateMsg] = useState<string | null>(null)
   const [selected, setSelected] = useState<{ path: string; op: FileOp } | null>(null)
+  // Markdown reading mode for .md files: replaces the raw/diff pane with a
+  // rendered document (read = file content; write/edit = resulting content).
+  const [mdReading, setMdReading] = useState(false)
   // Long diff lines fold to one ellipsized row; the set holds expanded row keys.
   const [expandedLines, setExpandedLines] = useState<ReadonlySet<string>>(new Set())
   // Hunk-fold segments expanded by index; default collapsed.
@@ -442,8 +446,25 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
       return { line: line.line, nodes: tokensToNodes(scan.tokens) }
     })
   }, [selectedOp, selectedLang])
+  // Reading-mode source for a .md selection: read -> the file's full content;
+  // write -> the written content; edit -> the reconstructed resulting
+  // content when the prior state is known, else the edit's new snippet.
+  const readingSrc = useMemo(() => {
+    if (selected === null || !isMarkdownPath(selected.path)) return ''
+    const op = selected.op
+    if (op.kind === 'read') return parseReadContent(op.read ?? '')
+    if (op.kind === 'write') return op.content ?? ''
+    if (op.kind === 'edit' && op.edit !== undefined) {
+      const prior = knownContentBefore(ops, selected.path, op)
+      if (prior !== undefined && prior.includes(op.edit.oldString)) {
+        return prior.replace(op.edit.oldString, op.edit.newString)
+      }
+      return op.edit.newString
+    }
+    return ''
+  }, [selected, ops])
   // Reset folding when selecting a different operation (the row indexes change).
-  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()) }, [selectedOp])
+  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false) }, [selectedOp])
 
   // Restore this op's own diff/read scroll position (new ops start at top).
   useEffect(() => {
@@ -624,6 +645,17 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                 <span className={css.diffKind} data-kind={selected.op.kind}>
                   {t(`ops.${selected.op.kind}` as never)}
                 </span>
+                {isMarkdownPath(selected.path) && !selected.op.isError && (
+                  <button
+                    type="button"
+                    className={css.readModeBtn}
+                    data-on={mdReading ? 'true' : undefined}
+                    onClick={() => { setMdReading(prev => !prev) }}
+                    title={mdReading ? t('md.raw') : t('md.read')}
+                  >
+                    {mdReading ? t('md.raw') : t('md.read')}
+                  </button>
+                )}
                 <button type="button" className={css.close} onClick={() => { setSelected(null) }}>×</button>
               </div>
               {selected.op.isError
@@ -634,7 +666,13 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                     </div>
                   </div>
                 )
-                : selected.op.kind === 'read'
+                : mdReading && isMarkdownPath(selected.path)
+                  ? (
+                    <div className={css.mdPane} data-file-trace-md-pane ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
+                      <MarkdownView src={readingSrc} baseDir={selected.path.replace(/[\\/][^\\/]*$/, '')} />
+                    </div>
+                  )
+                  : selected.op.kind === 'read'
                   ? (
                     <div className={css.readContent} data-file-trace-read ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                       {readRows.map((row) => (
