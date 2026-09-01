@@ -151,6 +151,63 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const scrollMemoryRef = useRef(new Map<string, number>())
   const listScrollRef = useRef<HTMLDivElement>(null)
   const listScrollMemoryRef = useRef<number | undefined>(undefined)
+  // Ctrl+wheel font sizing: one size for the op-list area, one for the
+  // diff/read pane; both persist in localStorage and clamp to
+  // [MIN_FONT, MAX_FONT] with a toast when the wheel keeps pushing past a bound.
+  const MIN_FONT = 9
+  const MAX_FONT = 28
+  const LS_LIST_FONT = 'dsh-file-trace:listFont'
+  const LS_PANE_FONT = 'dsh-file-trace:paneFont'
+  const readFont = (key: string): number | undefined => {
+    try {
+      const saved = window.localStorage.getItem(key)
+      if (saved !== null) {
+        const n = Number(saved)
+        if (Number.isFinite(n)) return Math.min(Math.max(n, MIN_FONT), MAX_FONT)
+      }
+    } catch { /* storage unavailable */ }
+    return undefined
+  }
+  const [listFont, setListFont] = useState(() => readFont(LS_LIST_FONT) ?? 12)
+  const [paneFont, setPaneFont] = useState(() => readFont(LS_PANE_FONT) ?? 12)
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const paneFontRef = useRef(paneFont)
+  paneFontRef.current = paneFont
+  const listFontRef = useRef(listFont)
+  listFontRef.current = listFont
+  const fontToast = (message: string): void => {
+    const existing = document.getElementById('dsh-file-trace-font-toast')
+    if (existing !== null) existing.remove()
+    const el = document.createElement('div')
+    el.id = 'dsh-file-trace-font-toast'
+    el.className = css.fontToast ?? ''
+    el.textContent = message
+    document.body.appendChild(el)
+    window.setTimeout(() => { el.remove() }, 1600)
+  }
+  useEffect(() => {
+    if (!open) return
+    const onFontWheel = (e: WheelEvent): void => {
+      if (!e.ctrlKey) return
+      const target = e.target instanceof Node ? e.target : null
+      const drawer = drawerRef.current
+      if (drawer === null || target === null || !drawer.contains(target)) return
+      e.preventDefault()
+      const inPane = target instanceof Element && target.closest('[data-file-trace-diff]') !== null
+      const step = e.deltaY < 0 ? 1 : -1
+      const current = inPane ? paneFontRef.current : listFontRef.current
+      const next = Math.min(Math.max(current + step, MIN_FONT), MAX_FONT)
+      if (next === current) {
+        fontToast(t(step < 0 ? 'font.min' : 'font.max', { px: String(step < 0 ? MIN_FONT : MAX_FONT) }) as never)
+        return
+      }
+      if (inPane) setPaneFont(next)
+      else setListFont(next)
+      try { window.localStorage.setItem(inPane ? LS_PANE_FONT : LS_LIST_FONT, String(next)) } catch { /* storage unavailable */ }
+    }
+    document.addEventListener('wheel', onFontWheel, { passive: false, capture: true })
+    return () => { document.removeEventListener('wheel', onFontWheel, { capture: true } as EventListenerOptions) }
+  }, [open, t])
 
   // Floating-window geometry (like dsh-minigames): position by header drag,
   // size by edge drags; persisted in localStorage.
@@ -549,17 +606,18 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
         <div
           className={css.drawer}
           data-file-trace-drawer
+          ref={drawerRef}
           data-dock={docked ? 'right' : undefined}
           role="dialog"
           aria-label={t('title')}
-          style={docked
-            ? ({ left: window.innerWidth - winSize.w, top: 0, width: winSize.w, height: window.innerHeight } as CSSProperties)
-            : ({
+          style={{ '--ft-list-font': `${String(listFont)}px`, '--ft-pane-font': `${String(paneFont)}px`, ...(docked
+            ? { left: window.innerWidth - winSize.w, top: 0, width: winSize.w, height: window.innerHeight }
+            : {
               left: Number.isFinite(winPos.x) ? Math.min(Math.max(winPos.x, 8), Math.max(8, window.innerWidth - 360)) : Math.max(16, window.innerWidth - 576),
               top: Number.isFinite(winPos.y) ? Math.min(Math.max(winPos.y, 8), Math.max(8, window.innerHeight - 120)) : 16,
               width: Number.isFinite(winSize.w) ? Math.min(Math.max(winSize.w, 360), window.innerWidth - 16) : Math.min(560, window.innerWidth - 16),
               height: Number.isFinite(winSize.h) ? Math.min(Math.max(winSize.h, 200), window.innerHeight - 16) : Math.min(720, window.innerHeight - 16),
-            } as CSSProperties)}
+            }) } as CSSProperties }
         >
           <div
             className={css.resizeW}

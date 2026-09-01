@@ -11,7 +11,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.0'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.2'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,11 +34,11 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.0'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.2'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
-> On errors, first check the known limitations in the README at https://github.com/lhh010/dsh-file-trace.
+> On errors, first check the known limitations in the README at <https://github.com/lhh010/dsh-file-trace>.
 
 ## Features
 
@@ -46,11 +46,12 @@ Paste this prompt into any DSH session and the agent installs it for you:
 - **Read view**: shows the real file content with **its real line numbers** (the DSH read-tool envelope is stripped).
 - **Markdown reading mode**: operations on `.md / .markdown / .mdx` files show a Reading/Raw toggle in the pane header (available for read, write, and edit alike); reading mode renders the full document in **Obsidian style** — headings, tables (with alignment), thematic breaks, bold/italic/bold-italic, strikethrough, `==highlight==`, inline code, code fences, blockquotes, ordered/unordered lists and task checkboxes, links, and `[[wiki links]]`; images render by URL, while local-path images and non-image attachments show a unified file chip with the file name; YAML frontmatter renders as a code block. Edits reconstruct the resulting full document from the in-window prior content when known.
 - **Unified error display**: opening a failed read / write / edit shows the real error text from the result (a red error block) instead of a fabricated diff.
-- **Syntax highlighting**: detects common languages by extension (C/C++, Java, C#, JS/TS, Python, Go, Rust, cmd/batch, PowerShell, JSON/YAML/TOML, SQL, …) and colors **keywords / strings / numbers / types / functions / comments / preprocessor directives** in the read view and diff rows; on modified lines the intra-line change tint stacks on top.
+- **Syntax highlighting**: detects common languages by extension (C/C++, Java, C#, JS/TS incl. mjs/cjs/mts/cts, Python, Go, Rust, shell, cmd/batch, PowerShell, JSON/JSONC/JSON5/YAML/TOML/INI, SQL, CSS/SCSS/Less, HTML/XML/SVG/Vue, GraphQL, …) and colors **keywords / strings / numbers / types / functions / comments / preprocessor directives** in the read view and diff rows; on modified lines the intra-line change tint stacks on top.
 - **Write view**: a new-file write shows as **all-added (every line a green +)**; an overwrite shows the true del/add.
 - **Edit view (hunk context folding)**: reconstructs the full file from an earlier in-window write/read, keeps **±3 lines of context** around the change, and folds unchanged large regions (**only runs of ≥3 lines**; ≤2-line runs stay visible) into a "… N lines" run (click to expand/collapse).
 - **Long-line folding**: a single line over 120 chars folds to an ellipsis; click to expand/collapse.
 - **Terminal-style diff**: monospace, line-number gutter, and **red (deleted) / green (added) / blue (modified)** font colors (backgrounds are only a softened tint for readability).
+- **Ctrl+wheel font sizing**: the op-list area and the file-content pane (diff/read views) size independently (Ctrl + mouse wheel, each persisted to localStorage); clamped to 9–28px with a "minimum/maximum font size reached" toast at the bounds.
 - **Floating window (draggable / resizable / right-edge docking)**: drag the header to move, drag the left/bottom edges to resize (position and size persist in localStorage); **release the drag near the right screen edge to snap it into a full-height right sidebar while the main conversation shifts left with no overlap — drag the header again to undock**; a separate handle above the diff pane adjusts the list/diff split.
 - **Compatibility self-diagnosis**: the apply body probes the client APIs it needs; if absent it renders a remediation banner instead of crashing. A render-error boundary likewise surfaces the fix hint if the component throws.
 
@@ -64,7 +65,8 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.2.0` (default) | `dsh-v0.1.2-alpha.1`–`alpha.3` | Markdown reading mode (Obsidian-style rendering, toggle on read/write/edit) |
+| `v0.2.2` (default) | `dsh-v0.1.2-alpha.1`–`alpha.3` | Highlight expansion (mjs/cjs/mts/cts, CSS/SCSS/Less, HTML/XML/SVG/Vue, GraphQL, JSONC/JSON5) + Ctrl+wheel per-area font sizing (9–28px with bound toasts) |
+| `v0.2.0` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Markdown reading mode (Obsidian-style rendering, toggle on read/write/edit) |
 | `v0.1.8` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Update-endpoint auth (x-dsh-plugin-update header + same-origin) and hostChanged detection |
 | `v0.1.7` | `dsh-v0.1.2-alpha.1` | Syntax highlighting (multi-line block comments included); unified real-error display; fold-expansion alignment fix; version tracks the tag | 
 | `v0.1.6` | `dsh-v0.1.2-alpha.1` | Host-same-origin version check; scroll position memory | 

@@ -20,6 +20,8 @@ export type FileTraceKey =
   | 'diff.fold'
   | 'md.read'
   | 'md.raw'
+  | 'font.min'
+  | 'font.max'
   | 'meta.bytes'
 
 export const zh: Record<FileTraceKey, string> = {
@@ -43,6 +45,8 @@ export const zh: Record<FileTraceKey, string> = {
   'diff.fold': '{count} 行…点击展开',
   'md.read': '阅读',
   'md.raw': '原文',
+  'font.min': '已达最小字号 {px}px',
+  'font.max': '已达最大字号 {px}px',
   'meta.bytes': '{bytes}',
 }
 
@@ -67,5 +71,7 @@ export const en: Record<FileTraceKey, string> = {
   'diff.fold': '{count} lines…click to expand',
   'md.read': 'Reading',
   'md.raw': 'Raw',
+  'font.min': 'Minimum font size reached ({px}px)',
+  'font.max': 'Maximum font size reached ({px}px)',
   'meta.bytes': '{bytes}',
 }

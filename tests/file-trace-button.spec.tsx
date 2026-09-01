@@ -41,7 +41,7 @@ function conversationOf(nodes: readonly unknown[]): ConversationSnapshot {
 
 /** Stub props: scripted useConversation over the fixture + zh translate. */
 function propsWith(conversation: ConversationSnapshot): FileTraceButtonProps {
-  const t = (key: string): string => (zh as Record<string, string>)[key] ?? key
+  const t = (key: string, params?: Record<string, string>): string => ((zh as Record<string, string>)[key] ?? key).replace(/\{(\w+)\}/g, (_, name: string) => params?.[name] ?? '')
   return {
     sessionId: 's-1',
     useConversation: ((selector: (s: ConversationSnapshot) => unknown) => selector(conversation)) as never,
@@ -131,4 +131,35 @@ describe('FileTraceButton', () => {
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(document.querySelector('[data-file-trace-drawer]')).toBeNull()
   })
+
+  it('ctrl+wheel resizes the list and pane fonts independently with bound toasts', () => {
+    const conversation = conversationOf([editNode('e1', 'src/a.ts', 'old line', 'new line', 1)])
+    const { container } = render(<FileTraceButton {...propsWith(conversation)} />)
+    fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+    const drawer = container.querySelector('[data-file-trace-drawer]') as HTMLElement
+    // fireEvent.wheel runs inside act, so the state update re-renders.
+    const wheel = (target: Element, deltaY: number): void => {
+      fireEvent.wheel(target, { ctrlKey: true, deltaY })
+    }
+    const listArea = container.querySelector('[data-file-trace-drawer] .drawerBody') ?? drawer
+    // Enlarge the list area: 12 → 15.
+    for (let i = 0; i < 3; i++) wheel(listArea, -100)
+    expect(drawer.style.getPropertyValue('--ft-list-font')).toBe('15px')
+    // The pane font is untouched.
+    expect(drawer.style.getPropertyValue('--ft-pane-font')).toBe('12px')
+    // Open the diff pane and shrink it: 12 → 10. The selection remounts the
+    // drawer (error-boundary key), so re-query the live element.
+    fireEvent.click(screen.getByText('编辑').closest('button') as HTMLElement)
+    const liveDrawer = container.querySelector('[data-file-trace-drawer]') as HTMLElement
+    const pane = container.querySelector('[data-file-trace-diff]') as HTMLElement
+    for (let i = 0; i < 2; i++) wheel(pane, 100)
+    expect(liveDrawer.style.getPropertyValue('--ft-pane-font')).toBe('10px')
+    expect(liveDrawer.style.getPropertyValue('--ft-list-font')).toBe('15px')
+    // Push far past the minimum: clamps at 9px and toasts.
+    for (let i = 0; i < 30; i++) wheel(pane, 100)
+    expect(liveDrawer.style.getPropertyValue('--ft-pane-font')).toBe('9px')
+    const toast = document.getElementById('dsh-file-trace-font-toast')
+    expect(toast?.textContent).toContain('9')
+  })
 })
+

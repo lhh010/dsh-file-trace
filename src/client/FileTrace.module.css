@@ -30,8 +30,8 @@
 .empty { color: var(--dsw-alias-label-caption); padding: 24px 8px; text-align: center; }
 
 .fileGroup { margin-bottom: 10px; }
-.filePath { display: block; color: var(--dsw-alias-label-secondary); font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; padding: 2px 4px; word-break: break-all; }
-.opRow { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 8px; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 12px; padding: 4px 6px; cursor: pointer; text-align: left; }
+.filePath { display: block; color: var(--dsw-alias-label-secondary); font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: var(--ft-list-font, 12px); padding: 2px 4px; word-break: break-all; }
+.opRow { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 8px; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: var(--ft-list-font, 12px); padding: 4px 6px; cursor: pointer; text-align: left; }
 .opRow:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .opKind { border-radius: 6px; font-size: 11px; line-height: 18px; padding: 0 6px; background: var(--dsw-alias-interactive-bg-muted, var(--dsw-alias-border-l1)); color: var(--dsw-alias-label-secondary); }
 .opKind[data-kind='write'] { color: var(--dsw-alias-state-success-primary); }
@@ -56,7 +56,7 @@
    keep their designed contrast on every theme. */
 .diffRows, .readContent { background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); }
 
-.diffRows { flex: 1; min-height: 0; overflow-y: auto; margin-right: 12px; padding: 4px 0 10px; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; }
+.diffRows { flex: 1; min-height: 0; overflow-y: auto; margin-right: 12px; padding: 4px 0 10px; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: var(--ft-pane-font, 12px); }
 .diffRow { display: flex; align-items: flex-start; gap: 6px; padding: 0 10px; line-height: 20px; cursor: default; }
 .diffRow[data-folded='true'] { cursor: pointer; }
 .lineNo { flex: none; width: 3em; color: var(--dsw-alias-label-caption); text-align: right; user-select: none; }
@@ -89,7 +89,7 @@
 .tokFunction { color: var(--dsw-static-amber-600); }
 .tokMacro { color: color-mix(in oklab, var(--dsw-static-red-400) 55%, var(--dsw-static-blue-400)); }
 
-.readContent { flex: 1; min-height: 0; margin: 0; padding: 6px 0 10px; margin-right: 12px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; line-height: 1.55; }
+.readContent { flex: 1; min-height: 0; margin: 0; padding: 6px 0 10px; margin-right: 12px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: var(--ft-pane-font, 12px); line-height: 1.55; }
 .readRow { display: flex; gap: 6px; padding: 0 10px; line-height: 20px; color: var(--dsw-alias-label-primary); }
 .readError { color: var(--dsw-alias-state-error-primary); border-left: 3px solid var(--dsw-alias-state-error-primary); background: var(--dsw-alias-bg-base); border-radius: 0 8px 8px 0; margin: 6px 10px; padding: 8px 12px; white-space: pre-wrap; word-break: break-word; }
 .drawerError { color: var(--dsw-alias-state-error-primary); padding: 24px 14px; font: 13px/1.6 system-ui, sans-serif; }
@@ -106,6 +106,9 @@
 .foldMarker { display: inline-block; padding: 2px 8px; border-radius: 6px; margin: 2px 0; color: var(--dsw-alias-label-caption); background: var(--dsw-alias-interactive-bg-muted, var(--dsw-alias-border-l1)); font-style: italic; }
 .foldRow[data-expanded='true'] { cursor: default; }
 .foldRow[data-expanded='true'] .foldMarker { display: none; }
+
+/* Ctrl+wheel font-limit toast (transient, fixed bottom-center of viewport). */
+.fontToast { position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%); z-index: 2147483000; padding: 6px 14px; border-radius: 8px; background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l1); color: var(--dsw-alias-label-primary); font: 12px/1.5 system-ui, 'Segoe UI', 'PingFang SC', sans-serif; box-shadow: var(--dsw-shadow-lv2); pointer-events: none; }
 
 /* Markdown reading mode: replaces the terminal-style raw/diff pane for .md
    files with a normally rendered document (no diff colors, reading typography). */

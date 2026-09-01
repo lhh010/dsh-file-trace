@@ -1,0 +1,32 @@
+/* demo-theme.css — CSS highlight sample (css / scss / less) */
+:root {
+  --fg: #1f2933;
+  --bg: #f5f7fa;
+  --accent: rgb(74, 125, 255);
+}
+
+/* layout */
+body {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: 16px 24px;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #d3dce6;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.2s ease-in-out;
+}
+
+.header:hover { background-color: #eef2f7; }
+
+@media (max-width: 600px) {
+  .header { flex-direction: column; }
+}

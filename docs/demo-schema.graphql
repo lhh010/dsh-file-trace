@@ -1,0 +1,17 @@
+# demo-schema.graphql — GraphQL highlight sample (graphql / gql)
+"""One traced file operation."""
+type FileOp {
+  callId: ID!
+  kind: String!
+  path: String!
+  time: Int!
+}
+
+input OpsFilter {
+  kind: String
+  pathPrefix: String
+}
+
+type Query {
+  ops(sessionId: ID!, filter: OpsFilter): [FileOp!]!
+}
