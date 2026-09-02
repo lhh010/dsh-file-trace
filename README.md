@@ -1,7 +1,7 @@
 # @dsh-external/dsh-file-trace
 
 
-> 兼容 DSH `dsh-v0.1.2-alpha.3`（typecheck/build + 79 单测全绿，实机验证；本插件基于 alpha.1+ 编写，rc.2 下无可用版本）
+> 兼容 DSH `dsh-v0.1.2-alpha.3`（typecheck/build + 87 单测全绿，实机验证；本插件基于 alpha.1+ 编写，rc.2 下无可用版本）
 DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看模型读取、写入、编辑的每一个文件**。会话标题栏工具区出现「文件追踪」按钮（带操作数徽标），点击打开浮动窗口，按文件分组列出全部操作，点选任意操作查看带行号的内容或**逐行 diff**。零核心改动，纯浏览器 half 插件。
 
 [English](./README.en.md) | **简体中文**
@@ -13,7 +13,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.7'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.8'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -36,7 +36,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.7'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.8'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -49,7 +49,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 - **Markdown 阅读模式 + Mermaid**：`.md / .markdown / .mdx` 文件的操作视图头部出现「阅读 / 原文」切换按钮（读取 / 写入 / 编辑三种操作均有）；阅读模式以 **Obsidian 风格**渲染完整文档——多级标题、表格（含对齐）、分割线、加粗/斜体/加粗斜体、删除线、高亮 `==`、行内代码、代码块、引用、有序/无序列表与任务清单、链接、`[[Wiki 链接]]`；图片按 URL 渲染，本地路径图片与非图片附件统一显示为带文件名的文件徽标；YAML frontmatter 显示为代码块。编辑操作优先用窗口内已知的前置内容重建变更后的完整文档。
 - **Mermaid 图渲染（懒加载 + 安全清洗 + 缩放）**：阅读模式下 ```mermaid 围栏按需从宿主 `/dsh-file-trace/resources` 懒加载 mermaid chunk（单文件打包）渲染成图；`securityLevel: strict` + `htmlLabels: false` 之上再经**零依赖 SVG 白名单清洗**（剥离 foreignObject/script/事件属性/全部链接）才注入 DOM；**点击图打开全屏缩放**（滚轮缩放/拖拽平移/±0 键盘/双击遮罩或 Esc 关闭）；加载失败或离线时自动回退为原样代码块。
 - **出错统一展示**：读取 / 写入 / 编辑**失败**的操作点开即显示结果里的真实错误文本（红色错误块），不再渲染伪造 diff。
-- **语法高亮**：按扩展名识别常见语言（C/C++、Java、C#、JS/TS（含 mjs/cjs/mts/cts）、Python、Go、Rust、cmd/batch、PowerShell、JSON/JSONC/JSON5/YAML/TOML/INI、SQL、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL 等），读取视图与 diff 行的**关键字 / 字符串 / 数字 / 类型 / 函数 / 注释 / 预处理指令**分别着色；修改行的行内变更底色与着色叠加。
+- **语法高亮**：按扩展名识别常见语言（C/C++、Java、C#、JS/TS（含 mjs/cjs/mts/cts）、Python、Go、Rust、cmd/batch、PowerShell、JSON/JSONC/JSON5/YAML/TOML/INI、SQL、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL、LaTeX/TeX（TeXstudio 风格初步渲染：命令/数学/注释/结构高亮）等），读取视图与 diff 行的**关键字 / 字符串 / 数字 / 类型 / 函数 / 注释 / 预处理指令**分别着色；修改行的行内变更底色与着色叠加。
 - **写入视图**：新文件写入显示为**全量新增（每行绿色 +）**；覆盖修改时按真实差异做 del/add。
 - **编辑视图（hunk 上下文折叠）**：用窗口内更早的写入/读取内容重建完整文件，保留**变更点 ±3 行上下文**；未变化区域**≥3 行才折叠**成「… N 行」（≤2 行直接显示），点击展开/收起。
 - **长行折叠**：单行超过 120 字符自动折叠为省略号，点击展开/收起。
@@ -68,7 +68,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.2.7`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5` | 声明支持 alpha.5（typecheck/build 全绿；alpha.5 为纯 bug 修复，无 API 变更） |
+| `v0.2.8`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5` | LaTeX/TeX 语法高亮（TeXstudio 风格初步渲染：命令→macro、数学→string、注释→灰、{}&^_#→structure、200+ 关键字） |
+| `v0.2.7` | `dsh-v0.1.2-alpha.1`~`alpha.5` | 声明支持 alpha.5（typecheck/build 全绿；alpha.5 为纯 bug 修复，无 API 变更） |
 | `v0.2.6` | `dsh-v0.1.2-alpha.1`~`alpha.4` | 声明支持 alpha.4（typecheck/build/79 单测全绿） |
 | `v0.2.5` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 更新提示词补「按 DSH 版本选 tag」路由说明与排查指引 |
 | `v0.2.4` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 渲染安全加固（htmlLabels:false + SVG 白名单清洗）+ 点击全屏缩放/拖拽 |

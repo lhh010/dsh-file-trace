@@ -171,6 +171,40 @@ const MARKUP_LANG: LangConfig = {
   wordBody: WORD,
 }
 
+/** LaTeX/TeX: TeXstudio-style basic highlighting — % comments, \commands
+ *  as macro, $$/$/\[/\( math regions as string-like, section commands as
+ *  keywords. The scanner main loop has special-cased \ and $ handling for
+ *  the tex language id (see scanLine). */
+const TEX_LANG: LangConfig = {
+  lineComments: ['%'],
+  strings: [],
+  keywords: kw(`begin end document documentclass usepackage section subsection subsubsection
+    title author date maketitle item label ref cite bibliography
+    includegraphics input newcommand renewcommand providecommand
+    textbf textit texttt emph underline frac sqrt sum int prod
+    left right large Large LARGE huge Huge tiny scriptsize footnotesize small normalsize
+    text width height paperwidth paperheight columnwidth linewidth textheight
+    tableofcontents listoffigures listoftables appendix clearpage newpage
+    chapter part paragraph subparagraph
+    theorem lemma definition corollary proposition proof remark example
+    equation align alignat gather multline split cases array matrix pmatrix bmatrix
+    tabular figure table verbatim lstlisting itemize enumerate description
+    footnotemark footnotetext marginpar parbox raisebox
+    setlength addtolength setcounter addtocounter value arabic roman Roman alph Alph
+    if else fi or and not xdef def let futurelet expandafter noexpand
+    centering raggedright raggedleft
+    hline hspace vspace vspace smallskip medskip bigskip
+    bgroup egroup global long outer
+    bmod pmod mod dot ddot ddot tilde hat bar vec widehat widetilde
+    alpha beta gamma delta epsilon varepsilon zeta eta theta vartheta iota kappa
+    lambda mu nu xi pi varpi rho varrho sigma varsigma tau upsilon phi varphi
+    chi psi omega Gamma Delta Theta Lambda Xi Pi Sigma Upsilon Phi Psi Omega`),
+  constants: new Set(),
+  macro: false,
+  wordStart: /[A-Za-z]/u,
+  wordBody: /[A-Za-z*@]/u,
+}
+
 /** Markdown: no tokenizer; the whole line stays plain. */
 const MD_LANG: LangConfig = {
   lineComments: [],
@@ -299,6 +333,12 @@ const LANGS: Readonly<Record<string, LangConfig>> = {
   gql: HASH_FAMILY('query mutation fragment on directive enum input interface scalar schema type implements'),
   lua: HASH_FAMILY(`and break do else elseif end false for function goto if in local nil not or
     repeat return then true until while`),
+  tex: TEX_LANG,
+  latex: TEX_LANG,
+  sty: TEX_LANG,
+  cls: TEX_LANG,
+  bib: HASH_FAMILY('article book inproceedings inbook incollection phdthesis mastersthesis techreport manual unpublished misc'),
+
 }
 
 /**
@@ -356,6 +396,63 @@ export function scanLine(line: string, lang: string | undefined, inBlock = false
     i = Math.min(i + 1, line.length)
   }
   while (i < line.length) {
+    // ── LaTeX/TeX special forms (lang tex/latex/sty/cls) ──────────────
+    if (lang === 'tex' || lang === 'latex' || lang === 'sty' || lang === 'cls') {
+      const ch = line[i]!
+      // \command → macro token (letters after the backslash, plus optional *).
+      if (ch === '\\' && i + 1 < line.length && /[A-Za-z]/u.test(line[i + 1]!)) {
+        const start = i
+        i += 1
+        while (i < line.length && /[A-Za-z*]/u.test(line[i]!)) i += 1
+        push(line.slice(start, i), 'macro')
+        continue
+      }
+      // \[, \], \(, \) display-math delimiters → string tint.
+      if (ch === '\\' && i + 1 < line.length && '[]()'.includes(line[i + 1]!)) {
+        push(line.slice(i, i + 2), 'string')
+        i += 2
+        continue
+      }
+      // Lone backslash (\\, \{, \}, \$, etc.) → macro.
+      if (ch === '\\') {
+        push(line.slice(i, i + 2), 'macro')
+        i += 2
+        continue
+      }
+      // $...$ inline math / $$...$$ display math → string tint to the closer.
+      if (ch === '$') {
+        if (line.startsWith('$$', i)) {
+          const close = line.indexOf('$$', i + 2)
+          const end = close === -1 ? line.length : close + 2
+          push(line.slice(i, end), 'string')
+          i = end
+          continue
+        }
+        const close = line.indexOf('$', i + 1)
+        const end = close === -1 ? line.length : close + 1
+        push(line.slice(i, end), 'string')
+        i = end
+        continue
+      }
+      // { } group braces → type tint (structure).
+      if (ch === '{' || ch === '}') {
+        push(ch, 'type')
+        i += 1
+        continue
+      }
+      // & (alignment tab) and # (parameter ref) and ~ (nbsp) → type.
+      if (ch === '&' || ch === '#') {
+        push(ch, 'type')
+        i += 1
+        continue
+      }
+      // ^ _ super/subscript → type.
+      if (ch === '^' || ch === '_') {
+        push(ch, 'type')
+        i += 1
+        continue
+      }
+    }
     if (inComment) {
       const closeIdx = cfg.blockComment !== undefined ? line.indexOf(cfg.blockComment[1], i) : -1
       if (closeIdx === -1) {

@@ -11,7 +11,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.7'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.8'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +34,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.7'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.8'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -47,7 +47,7 @@ Paste this prompt into any DSH session and the agent installs it for you:
 - **Markdown reading mode + Mermaid**: operations on `.md / .markdown / .mdx` files show a Reading/Raw toggle in the pane header (available for read, write, and edit alike); reading mode renders the full document in **Obsidian style** — headings, tables (with alignment), thematic breaks, bold/italic/bold-italic, strikethrough, `==highlight==`, inline code, code fences, blockquotes, ordered/unordered lists and task checkboxes, links, and `[[wiki links]]`; images render by URL, while local-path images and non-image attachments show a unified file chip with the file name; YAML frontmatter renders as a code block. Edits reconstruct the resulting full document from the in-window prior content when known.
 - **Mermaid diagram rendering (lazy + sanitized + zoom)**: ```mermaid fences in reading mode lazy-load the mermaid chunk from the host `/dsh-file-trace/resources` route (single-file bundle) and render as diagrams; beyond `securityLevel: strict` + `htmlLabels: false`, the emitted SVG passes a **zero-dependency whitelist sanitizer** (foreignObject/script/event attributes/all links stripped) before innerHTML; **click a diagram for the fullscreen zoom modal** (wheel zoom, drag pan, ±/0 keys, Esc or overlay-click close); import or render failure falls back to the plain code block.
 - **Unified error display**: opening a failed read / write / edit shows the real error text from the result (a red error block) instead of a fabricated diff.
-- **Syntax highlighting**: detects common languages by extension (C/C++, Java, C#, JS/TS incl. mjs/cjs/mts/cts, Python, Go, Rust, shell, cmd/batch, PowerShell, JSON/JSONC/JSON5/YAML/TOML/INI, SQL, CSS/SCSS/Less, HTML/XML/SVG/Vue, GraphQL, …) and colors **keywords / strings / numbers / types / functions / comments / preprocessor directives** in the read view and diff rows; on modified lines the intra-line change tint stacks on top.
+- **Syntax highlighting**: detects common languages by extension (C/C++, Java, C#, JS/TS incl. mjs/cjs/mts/cts, Python, Go, Rust, shell, cmd/batch, PowerShell, JSON/JSONC/JSON5/YAML/TOML/INI, SQL, CSS/SCSS/Less, HTML/XML/SVG/Vue, GraphQL, LaTeX/TeX (TeXstudio-style basic highlighting), …) and colors **keywords / strings / numbers / types / functions / comments / preprocessor directives** in the read view and diff rows; on modified lines the intra-line change tint stacks on top.
 - **Write view**: a new-file write shows as **all-added (every line a green +)**; an overwrite shows the true del/add.
 - **Edit view (hunk context folding)**: reconstructs the full file from an earlier in-window write/read, keeps **±3 lines of context** around the change, and folds unchanged large regions (**only runs of ≥3 lines**; ≤2-line runs stay visible) into a "… N lines" run (click to expand/collapse).
 - **Long-line folding**: a single line over 120 chars folds to an ellipsis; click to expand/collapse.
@@ -66,7 +66,8 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.2.7` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5` | Declares alpha.5 support (typecheck/build green; alpha.5 is a pure bug-fix, no API change) |
+| `v0.2.8` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5` | LaTeX/TeX syntax highlighting (TeXstudio-style: commands as macro, math as string, % comments, structure tokens, 200+ keywords) |
+| `v0.2.7` | `dsh-v0.1.2-alpha.1`–`alpha.5` | Declares alpha.5 support (typecheck/build green; alpha.5 is a pure bug-fix, no API change) |
 | `v0.2.6` | `dsh-v0.1.2-alpha.1`–`alpha.4` | Declares alpha.4 support (typecheck/build/79 tests green) |
 | `v0.2.5` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Update prompt gains DSH-version tag routing + troubleshooting pointers |
 | `v0.2.4` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Mermaid render hardening (htmlLabels:false + SVG whitelist sanitizer) + click-to-zoom modal |

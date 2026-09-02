@@ -86,6 +86,58 @@ describe('tokenizeLine: CSS / markup', () => {
   })
 })
 
+describe('langOfPath: tex/latex', () => {
+  it('maps tex/latex/sty/cls/bib suffixes', () => {
+    expect(langOfPath('docs/paper.tex')).toBe('tex')
+    expect(langOfPath('docs/paper.latex')).toBe('latex')
+    expect(langOfPath('style.sty')).toBe('sty')
+    expect(langOfPath('class.cls')).toBe('cls')
+    expect(langOfPath('refs.bib')).toBe('bib')
+  })
+})
+
+describe('tokenizeLine: LaTeX (TeXstudio-style)', () => {
+  it('colors % comments to end of line', () => {
+    const toks = tokenizeLine('% this is a comment', 'tex')
+    expect(toks[0]).toMatchObject({ text: '% this is a comment', type: 'comment' })
+  })
+
+  it('colors \\commands as macro tokens', () => {
+    const toks = tokenizeLine('\\documentclass{article}', 'tex')
+    expect(toks).toContainEqual(expect.objectContaining({ text: '\\documentclass', type: 'macro' }))
+  })
+
+  it('colors inline $math$ and display $$math$$ as string', () => {
+    const toks = tokenizeLine('the value $x^2 + y$ here', 'tex')
+    expect(toks).toContainEqual(expect.objectContaining({ text: '$x^2 + y$', type: 'string' }))
+    const d = tokenizeLine('display $$E=mc^2$$ end', 'tex')
+    expect(d).toContainEqual(expect.objectContaining({ text: '$$E=mc^2$$', type: 'string' }))
+  })
+
+  it('colors display-math \\[ and \\( delimiters as string', () => {
+    const toks = tokenizeLine('text \\[ E=mc^2 \\] tail', 'tex')
+    expect(toks).toContainEqual(expect.objectContaining({ text: '\\[', type: 'string' }))
+  })
+
+  it('colors { } braces as type (structure)', () => {
+    const toks = tokenizeLine('{\\bfseries bold text}', 'tex')
+    expect(toks).toContainEqual(expect.objectContaining({ text: '{', type: 'type' }))
+    expect(toks).toContainEqual(expect.objectContaining({ text: '}', type: 'type' }))
+  })
+
+  it('colors keywords like document inside braces', () => {
+    const toks = tokenizeLine('\\begin{document}', 'tex')
+    expect(toks).toContainEqual(expect.objectContaining({ text: '\\begin', type: 'macro' }))
+    expect(toks).toContainEqual(expect.objectContaining({ text: 'document', type: 'keyword' }))
+  })
+
+  it('colors & alignment and ^ _ scripts as type', () => {
+    const toks = tokenizeLine('a & b & c_x^y', 'tex')
+    expect(toks).toContainEqual(expect.objectContaining({ text: '&', type: 'type' }))
+    expect(toks).toContainEqual(expect.objectContaining({ text: '^', type: 'type' }))
+    expect(toks).toContainEqual(expect.objectContaining({ text: '_', type: 'type' }))
+  })
+})
 describe('tokenizeLine', () => {
   it('colors a C++ line: keyword, type, function, string, number, comment', () => {
     const toks = pairs('int main() { std::string s = "hi"; return 42; } // done', 'cpp')
