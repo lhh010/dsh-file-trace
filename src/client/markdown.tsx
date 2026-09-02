@@ -9,7 +9,7 @@
  * angle autolinks, raw <img> tags, Obsidian wiki links, image embeds (URL or
  * local file via the host asset route) and generic file embeds.
  */
-import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import css from './FileTrace.module.css'
 
 /** Rendering context threaded through the inline/block renderers. */
@@ -31,9 +31,89 @@ function loadMermaidChunk(): Promise<{ renderMermaid: (code: string) => Promise<
   return chunkPromise
 }
 /** Render one mermaid fence lazily; on any failure fall back to the code block. */
+/** Zoom/pan modal for one rendered diagram (click the diagram to open):
+ *  wheel zoom anchored at the cursor, drag to pan, +/-/0 keyboard, Esc or ×
+ *  to close — the SVG stays the already-sanitized string from the chunk. */
+function MermaidZoom({ svg, onClose }: { readonly svg: string; readonly onClose: () => void }): ReactElement {
+  const stageRef = useRef<HTMLDivElement>(null)
+  const hostRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef({ active: false, startX: 0, startY: 0 })
+  const zoomRef = useRef({ scale: 1, tx: 0, ty: 0 })
+  const apply = (): void => {
+    const node = hostRef.current?.firstElementChild as SVGElement | null | undefined
+    if (node === null || node === undefined) return
+    const { scale, tx, ty } = zoomRef.current
+    node.style.transform = 'translate(' + String(tx) + 'px, ' + String(ty) + 'px) scale(' + String(scale) + ')'
+  }
+  const zoom = (delta: number, cx?: number, cy?: number): void => {
+    const stage = stageRef.current
+    if (stage === null) return
+    const rect = stage.getBoundingClientRect()
+    const px = cx ?? rect.width / 2
+    const py = cy ?? rect.height / 2
+    const current = zoomRef.current
+    const next = Math.min(8, Math.max(0.2, current.scale * delta))
+    // The svg is flex-centered; solve the translate that keeps the cursor
+    // point stationary in stage coordinates across the scale change.
+    const sx = rect.width / 2
+    const sy = rect.height / 2
+    const ratio = next / current.scale
+    current.tx = px - sx - (px - sx - current.tx) * ratio
+    current.ty = py - sy - (py - sy - current.ty) * ratio
+    current.scale = next
+    apply()
+  }
+  const reset = (): void => { zoomRef.current = { scale: 1, tx: 0, ty: 0 }; apply() }
+  useEffect(() => {
+    const stage = stageRef.current
+    if (stage === null) return
+    const onWheel = (event: WheelEvent): void => {
+      // Handle ALL wheel events here (ctrl included): the modal owns zoom, so
+      // the pane's ctrl+wheel font sizing must not run under the modal.
+      event.preventDefault()
+      event.stopPropagation()
+      const rect = stage.getBoundingClientRect()
+      zoom(event.deltaY < 0 ? 1.1 : 1 / 1.1, event.clientX - rect.left, event.clientY - rect.top)
+    }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') { onClose(); return }
+      if (event.key === '+' || event.key === '=') zoom(1.2)
+      else if (event.key === '-') zoom(1 / 1.2)
+      else if (event.key === '0') reset()
+    }
+    stage.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('keydown', onKey)
+    return () => { stage.removeEventListener('wheel', onWheel); window.removeEventListener('keydown', onKey) }
+  })
+  const tool = (label: string, title: string, onClick: () => void): ReactElement => (
+    <button type="button" className={css.mdMermaidTool} title={title} aria-label={title} onClick={onClick}>{label}</button>
+  )
+  return (
+    <div id="dsh-file-trace-mermaid-modal" className={css.mdMermaidOverlay} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className={css.mdMermaidTools} data-modal-tools>
+        {tool('＋', '放大', () => { zoom(1.2) })}
+        {tool('－', '缩小', () => { zoom(1 / 1.2) })}
+        {tool('⟲', '重置', reset)}
+        {tool('×', '关闭', onClose)}
+      </div>
+      <div
+        ref={stageRef}
+        className={css.mdMermaidStage}
+        onPointerDown={(e) => { e.preventDefault(); dragRef.current = { active: true, startX: e.clientX - zoomRef.current.tx, startY: e.clientY - zoomRef.current.ty } }}
+        onPointerMove={(e) => { if (!dragRef.current.active) return; zoomRef.current.tx = e.clientX - dragRef.current.startX; zoomRef.current.ty = e.clientY - dragRef.current.startY; apply() }}
+        onPointerUp={() => { dragRef.current.active = false }}
+        onPointerLeave={() => { dragRef.current.active = false }}
+      >
+        <div ref={hostRef} className={css.mdMermaidHost} dangerouslySetInnerHTML={{ __html: svg }} />
+      </div>
+    </div>
+  )
+}
+
 function MermaidBlock({ code }: { readonly code: string }): ReactElement {
   const [svg, setSvg] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
+  const [zoomed, setZoomed] = useState(false)
   useEffect(() => {
     let alive = true
     setSvg(null)
@@ -53,7 +133,10 @@ function MermaidBlock({ code }: { readonly code: string }): ReactElement {
   if (failed || svg === null) {
     return <pre key="mdmermaid" className={css.mdPre} data-lang="mermaid" data-mermaid-state={failed ? 'failed' : 'loading'}><code>{code}</code></pre>
   }
-  return <div key="mdmermaid" data-mermaid-state="rendered" className={css.mdMermaid} dangerouslySetInnerHTML={{ __html: svg }} />
+  return <div key="mdmermaid">
+    <div data-mermaid-state="rendered" className={css.mdMermaid} title="点击放大：滚轮缩放 / 拖拽平移" onClick={() => { setZoomed(true) }} dangerouslySetInnerHTML={{ __html: svg }} />
+    {zoomed && <MermaidZoom svg={svg} onClose={() => { setZoomed(false) }} />}
+  </div>
 }
 
 /** True when a traced path is a markdown source this renderer handles. */

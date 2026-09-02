@@ -189,6 +189,9 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     if (!open) return
     const onFontWheel = (e: WheelEvent): void => {
       if (!e.ctrlKey) return
+      // The mermaid zoom modal owns ALL wheel events while open (its own
+      // capture-stage handler zooms); font sizing must not fight it.
+      if (document.getElementById('dsh-file-trace-mermaid-modal') !== null) return
       const target = e.target instanceof Node ? e.target : null
       const drawer = drawerRef.current
       if (drawer === null || target === null || !drawer.contains(target)) return
