@@ -6,12 +6,12 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 > **Pick the plugin version that matches your DSH** (a mismatch crashes: common symptom `useConversation is not a function`)
 > - DSH **0.1.1-rc.2**: this plugin targets **alpha.x** only; no version for rc.2
-> - DSH **0.1.2-alpha.1 / alpha.2 / alpha.3**: install the **new** version (the default command below)
+> - DSH **0.1.2-alpha.1 / alpha.2 / alpha.3 / alpha.4**: install the **new** version (the default command below)
 ## Install (profile mode)
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.5'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.6'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +34,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.5'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.6'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -66,7 +66,8 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.2.5` (default) | `dsh-v0.1.2-alpha.1`–`alpha.3` | Update prompt gains DSH-version tag routing + troubleshooting pointers |
+| `v0.2.6` (default) | `dsh-v0.1.2-alpha.1`–`alpha.4` | Declares alpha.4 support (typecheck/build/79 tests green) |
+| `v0.2.5` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Update prompt gains DSH-version tag routing + troubleshooting pointers |
 | `v0.2.4` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Mermaid render hardening (htmlLabels:false + SVG whitelist sanitizer) + click-to-zoom modal |
 | `v0.2.3` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Lazy mermaid rendering (code-block fallback); new host chunk-resource route |
 | `v0.2.2` | `dsh-v0.1.2-alpha.1`–`alpha.3` | Highlight expansion (mjs/cjs/mts/cts, CSS/SCSS/Less, HTML/XML/SVG/Vue, GraphQL, JSONC/JSON5) + Ctrl+wheel per-area font sizing (9–28px with bound toasts) |

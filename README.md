@@ -8,12 +8,12 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 > **你的 DSH 版本决定装哪个插件版本**（装错会崩：常见症状 `useConversation is not a function`）
 > - DSH **0.1.1-rc.2**：本插件按 **alpha.x** 编写，rc.2 下**无可用版本**
-> - DSH **0.1.2-alpha.1 / alpha.2 / alpha.3**：装**新版**（下方默认命令）
+> - DSH **0.1.2-alpha.1 / alpha.2 / alpha.3 / alpha.4**：装**新版**（下方默认命令）
 ## 安装（profile 模式）
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.5'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.6'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -36,7 +36,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.5'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.6'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -68,7 +68,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.2.5`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.3` | 更新提示词补「按 DSH 版本选 tag」路由说明与排查指引 |
+| `v0.2.6`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.4` | 声明支持 alpha.4（typecheck/build/79 单测全绿） |
+| `v0.2.5` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 更新提示词补「按 DSH 版本选 tag」路由说明与排查指引 |
 | `v0.2.4` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 渲染安全加固（htmlLabels:false + SVG 白名单清洗）+ 点击全屏缩放/拖拽 |
 | `v0.2.3` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 懒加载渲染（失败回退代码块）；新增宿主 chunk 资源路由 |
 | `v0.2.2` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 高亮扩充（mjs/cjs/mts/cts、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL、JSONC/JSON5）+ Ctrl+滚轮分区调字号（9–28px，边界提示） |
