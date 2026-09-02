@@ -87,8 +87,10 @@ export async function fetchLatestTag(): Promise<string | undefined> {
 export function updatePrompt(tag: string): string {
   return [
     `帮我更新 dsh-file-trace 插件到 ${tag}，步骤：`,
-    `1. 执行 dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#${tag}'（首次可能被 pnpm 11 拦截构建脚本，则先在 ~/.dsh/profiles/web 执行 pnpm approve-builds --all）`,
+    `0. 先执行 dsh --version 确认本地 DSH 版本，并对照 https://github.com/${MIRROR} 的 README「版本兼容」表——不同 DSH 版本需安装不同插件 tag，装错版本会启动崩溃；若本提示词给的 tag 与你的 DSH 版本不匹配，请改装表中对应 tag`,
+    `1. 执行 dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:${MIRROR}#${tag}'（首次可能被 pnpm 11 拦截构建脚本，则先在 ~/.dsh/profiles/web 执行 pnpm approve-builds --all）`,
     '2. 完成后提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）',
+    `3. 遇到安装失败 / 版本不匹配 / 启动报错：先查 https://github.com/${MIRROR} README 的「版本兼容」与「已知限制」章节再排查`,
   ].join('\n')
 }
 

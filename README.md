@@ -13,7 +13,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.4'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.5'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -36,7 +36,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.4'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.5'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -68,7 +68,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.2.4`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 渲染安全加固（htmlLabels:false + SVG 白名单清洗）+ 点击全屏缩放/拖拽 |
+| `v0.2.5`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.3` | 更新提示词补「按 DSH 版本选 tag」路由说明与排查指引 |
+| `v0.2.4` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 渲染安全加固（htmlLabels:false + SVG 白名单清洗）+ 点击全屏缩放/拖拽 |
 | `v0.2.3` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 懒加载渲染（失败回退代码块）；新增宿主 chunk 资源路由 |
 | `v0.2.2` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 高亮扩充（mjs/cjs/mts/cts、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL、JSONC/JSON5）+ Ctrl+滚轮分区调字号（9–28px，边界提示） |
 | `v0.2.0` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Markdown 阅读模式（Obsidian 风格渲染，读/写/编辑均可切换） |
