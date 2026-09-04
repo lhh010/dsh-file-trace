@@ -11,7 +11,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.0'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.1'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +34,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.0'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.1'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -66,7 +66,8 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.3.0` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | **Secret redaction layer**: sensitive paths mask whole files (`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/private keys…) and ordinary files mask secret-shaped spans (`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM headers…); applied uniformly across diff, read view, markdown mode, and error text; on by default with a one-click toolbar toggle (persisted in localStorage); display-only — session logs are untouched |
+| `v0.3.1` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | Docs update: clarify the redaction layer's positioning — display-layer convenience (screenshots / sharing), not a security boundary; session logs keep raw content |
+| `v0.3.0` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | **Secret redaction layer**: sensitive paths mask whole files (`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/private keys…) and ordinary files mask secret-shaped spans (`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM headers…); applied uniformly across diff, read view, markdown mode, and error text; on by default with a one-click toolbar toggle (persisted in localStorage); display-only — session logs are untouched |
 | `v0.2.9` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | Declares rc.1 support (alpha.5→rc.1 is version-bump-only, zero code diff; verified on rc.1) |
 | `v0.2.8` | `dsh-v0.1.2-alpha.1`–`alpha.5` | LaTeX/TeX syntax highlighting (TeXstudio-style: commands as macro, math as string, % comments, structure tokens, 200+ keywords) |
 | `v0.2.7` | `dsh-v0.1.2-alpha.1`–`alpha.5` | Declares alpha.5 support (typecheck/build green; alpha.5 is a pure bug-fix, no API change) |
@@ -104,5 +105,6 @@ Paste this prompt into any DSH session and the agent installs it for you:
 - Covers only the loaded window's operations, matching the Chat view; paging fills in as it loads.
 - The edit "full-file context" relies on an earlier in-window write/read of the **same file**; otherwise only the model-provided old_string/new_string snippet is shown.
 - Line-level diff plus intra-line (character-level) highlighting; syntax highlighting is a lightweight regex tokenizer (no syntax tree) with multi-line block-comment state threaded in line order, so complex constructs may be imprecise.
+- **Redaction layer positioning (not a security boundary)**: redaction applies only to this plugin's rendering layer, as a convenience for **screenshots and sharing diffs with others**; it is not a security boundary — raw content remains fully present in the session logs, and any plugin or tool that can read session files sees unredacted content. To truly protect secrets, handle them at the source (credential management, file permissions).
 - **Redaction × mermaid known edge**: in the markdown reading mode, when an **unquoted** mermaid node label contains a redacted secret (the masked `[REDACTED]` carries nested brackets), that diagram fails to parse and falls back to source text (no secret leaks; only the picture is lost). **Workaround**: always quote node labels (`A["text"]`); quoted labels survive masking. Turning redaction off also restores rendering. Session logs always keep the original bytes — redaction affects display only.
 - The zh/en bilingual consistency record lives in `README.i18n.yaml`.
