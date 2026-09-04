@@ -11,7 +11,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.1'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.2'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +34,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.1'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.2'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -66,7 +66,8 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.3.1` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | Docs update: clarify the redaction layer's positioning — display-layer convenience (screenshots / sharing), not a security boundary; session logs keep raw content |
+| `v0.3.2` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1` | Declare support for 0.1.3-alpha.1 (not on npm yet; verified on a source-launched host; 0.1.3 breaking changes sit on the host/session plane — zero code delta on this plugin's client surface; typecheck/build/96 tests green) |
+| `v0.3.1` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | Docs update: clarify the redaction layer's positioning — display-layer convenience (screenshots / sharing), not a security boundary; session logs keep raw content |
 | `v0.3.0` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | **Secret redaction layer**: sensitive paths mask whole files (`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/private keys…) and ordinary files mask secret-shaped spans (`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM headers…); applied uniformly across diff, read view, markdown mode, and error text; on by default with a one-click toolbar toggle (persisted in localStorage); display-only — session logs are untouched |
 | `v0.2.9` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | Declares rc.1 support (alpha.5→rc.1 is version-bump-only, zero code diff; verified on rc.1) |
 | `v0.2.8` | `dsh-v0.1.2-alpha.1`–`alpha.5` | LaTeX/TeX syntax highlighting (TeXstudio-style: commands as macro, math as string, % comments, structure tokens, 200+ keywords) |
