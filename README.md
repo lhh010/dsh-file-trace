@@ -13,7 +13,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.9'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.0'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -36,7 +36,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.2.9'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.0'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -68,7 +68,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.2.9`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | 声明支持 rc.1（alpha.5→rc.1 为纯版本号提交，零代码差异；实机 rc.1 验证通过） |
+| `v0.3.0`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | **敏感内容脱敏层**：敏感路径整文件遮罩（`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/私钥等）+ 普通文件按内容形态遮罩（`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM 头等），diff/阅读视图/Markdown 模式/错误文本统一生效；默认开启，面板工具栏一键开关（localStorage 记忆）；仅影响显示，不改会话日志 |
+| `v0.2.9` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | 声明支持 rc.1（alpha.5→rc.1 为纯版本号提交，零代码差异；实机 rc.1 验证通过） |
 | `v0.2.8` | `dsh-v0.1.2-alpha.1`~`alpha.5` | LaTeX/TeX 语法高亮（TeXstudio 风格初步渲染：命令→macro、数学→string、注释→灰、{}&^_#→structure、200+ 关键字） |
 | `v0.2.7` | `dsh-v0.1.2-alpha.1`~`alpha.5` | 声明支持 alpha.5（typecheck/build 全绿；alpha.5 为纯 bug 修复，无 API 变更） |
 | `v0.2.6` | `dsh-v0.1.2-alpha.1`~`alpha.4` | 声明支持 alpha.4（typecheck/build/79 单测全绿） |
@@ -105,4 +106,5 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 - 只覆盖当前加载窗口内的操作，并与 Chat 视图一致；翻页加载后自动补全。
 - 编辑的"完整文件上下文"依赖窗口内更早的**同一文件**写入/读取内容；若无，则仅显示模型提供的 old_string/new_string 片段。
 - 行级 diff + 行内字符级高亮；语法高亮为轻量正则分词（无语法树），多行块注释状态按行序推导、跨行正确着色，复杂构造可能不完全精确。
+- **脱敏 × mermaid 已知边界**：Markdown 阅读模式下，若 mermaid 图的**无引号**节点标签里含被脱敏的密钥（遮罩产物 `[REDACTED]` 自带嵌套方括号），该图会因语法破坏而渲染失败、回退显示源码（信息不泄漏，仅图不可看）。**规避方法**：节点标签一律加引号（`A["文本"]` 写作 `A["含密钥的文本"]` 形式即可安全遮罩）；关闭脱敏开关亦可恢复渲染。会话日志始终保留原始字节，仅影响显示。
 - 中英文 README 一致性记录见 `README.i18n.yaml`。

@@ -16,6 +16,7 @@ import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt 
 import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import { scanLine, isColored, langOfPath, hasBlockComment, type TokenType, type CodeToken } from './highlight.ts'
 import { MarkdownView, isMarkdownPath } from './markdown.tsx'
+import { redactText } from './redact.ts'
 import css from './FileTrace.module.css'
 
 /** Renders the remediation banner once when the drawer subtree throws. */
@@ -467,9 +468,41 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     () => selected === null ? undefined : langOfPath(selected.path),
     [selected],
   )
+  // Secret redaction: on by default, toggle persists per browser. Every
+  // downstream consumer (diff rows, read view, markdown mode, error text)
+  // renders from viewOp below, so masked payloads are the only shape that
+  // can reach the DOM while the toggle is on.
+  const [redactionOn, setRedactionOn] = useState((): boolean => {
+    try { return localStorage.getItem('dsh-file-trace.redaction') !== '0' } catch { return true }
+  })
+  const toggleRedaction = (): void => {
+    setRedactionOn((prev) => {
+      const next = !prev
+      try { localStorage.setItem('dsh-file-trace.redaction', next ? '1' : '0') } catch { /* storage unavailable */ }
+      return next
+    })
+  }
+  const viewOp = useMemo(() => {
+    const priorRaw = selectedOp === undefined ? undefined : knownContentBefore(ops, selected?.path ?? '', selectedOp)
+    if (selectedOp === undefined || !redactionOn) {
+      return { op: selectedOp, prior: priorRaw, hit: false }
+    }
+    const path = selected?.path ?? ''
+    const mask = (text: string): string => redactText(path, text).text
+    const hit = [selectedOp.read, selectedOp.content, selectedOp.edit?.oldString, selectedOp.edit?.newString, selectedOp.errorText, priorRaw]
+      .some((text) => text !== undefined && redactText(path, text).hit)
+    const op: FileOp = {
+      ...selectedOp,
+      ...(selectedOp.read !== undefined ? { read: mask(selectedOp.read) } : {}),
+      ...(selectedOp.content !== undefined ? { content: mask(selectedOp.content) } : {}),
+      ...(selectedOp.edit !== undefined ? { edit: { oldString: mask(selectedOp.edit.oldString), newString: mask(selectedOp.edit.newString) } } : {}),
+      ...(selectedOp.errorText !== undefined ? { errorText: mask(selectedOp.errorText) } : {}),
+    }
+    return { op, prior: priorRaw === undefined ? undefined : mask(priorRaw), hit }
+  }, [selectedOp, selected?.path, ops, redactionOn])
   const diffRows = useMemo(
-    () => selectedOp === undefined ? [] : diffOf(selectedOp, knownContentBefore(ops, selected?.path ?? '', selectedOp)),
-    [selectedOp, selected?.path, ops],
+    () => viewOp.op === undefined ? [] : diffOf(viewOp.op, viewOp.prior),
+    [viewOp],
   )
   const segments = useMemo(() => buildDiffSegments(diffRows), [diffRows])
   // Char-level highlight for mod-row pairs: keyed by (oldLine|newLine), so a
@@ -498,31 +531,33 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const blockEntries = useMemo(() => diffBlockEntries(diffRows, selectedLang), [diffRows, selectedLang])
   // Read view rows with block-comment state threaded down the file's lines.
   const readRows = useMemo(() => {
-    if (selectedOp?.kind !== 'read' || selectedOp.read === undefined) return []
+    if (viewOp.op?.kind !== 'read' || viewOp.op.read === undefined) return []
     let state = false
-    return parseReadLines(selectedOp.read).map((line) => {
+    return parseReadLines(viewOp.op.read).map((line) => {
       const scan = scanLine(line.text, selectedLang, state)
       state = scan.inBlock
       return { line: line.line, nodes: tokensToNodes(scan.tokens) }
     })
-  }, [selectedOp, selectedLang])
+  }, [viewOp, selectedLang])
   // Reading-mode source for a .md selection: read -> the file's full content;
   // write -> the written content; edit -> the reconstructed resulting
   // content when the prior state is known, else the edit's new snippet.
+  // All payloads come from viewOp (redacted when the toggle is on).
   const readingSrc = useMemo(() => {
     if (selected === null || !isMarkdownPath(selected.path)) return ''
-    const op = selected.op
+    const op = viewOp.op
+    if (op === undefined) return ''
     if (op.kind === 'read') return parseReadContent(op.read ?? '')
     if (op.kind === 'write') return op.content ?? ''
     if (op.kind === 'edit' && op.edit !== undefined) {
-      const prior = knownContentBefore(ops, selected.path, op)
+      const prior = viewOp.prior
       if (prior !== undefined && prior.includes(op.edit.oldString)) {
         return prior.replace(op.edit.oldString, op.edit.newString)
       }
       return op.edit.newString
     }
     return ''
-  }, [selected, ops])
+  }, [selected, viewOp])
   // Reset folding when selecting a different operation (the row indexes change).
   useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false) }, [selectedOp])
 
@@ -706,6 +741,18 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                 <span className={css.diffKind} data-kind={selected.op.kind}>
                   {t(`ops.${selected.op.kind}` as never)}
                 </span>
+                {viewOp.hit && redactionOn && (
+                  <span className={css.redactBanner} role="status">{t('redact.banner')}</span>
+                )}
+                <button
+                  type="button"
+                  className={css.readModeBtn}
+                  data-on={redactionOn ? 'true' : undefined}
+                  onClick={toggleRedaction}
+                  title={redactionOn ? t('redact.off') : t('redact.on')}
+                >
+                  {redactionOn ? t('redact.onLabel') : t('redact.offLabel')}
+                </button>
                 {isMarkdownPath(selected.path) && !selected.op.isError && (
                   <button
                     type="button"
@@ -723,7 +770,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                 ? (
                   <div className={css.readContent} data-file-trace-read data-error="true" ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                     <div className={css.readError} role="alert">
-                      {selected.op.errorText ?? t('error')}
+                      {viewOp.op?.errorText ?? t('error')}
                     </div>
                   </div>
                 )

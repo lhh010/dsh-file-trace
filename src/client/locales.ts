@@ -23,6 +23,11 @@ export type FileTraceKey =
   | 'font.min'
   | 'font.max'
   | 'meta.bytes'
+  | 'redact.on'
+  | 'redact.off'
+  | 'redact.onLabel'
+  | 'redact.offLabel'
+  | 'redact.banner'
 
 export const zh: Record<FileTraceKey, string> = {
   title: '文件追踪',
@@ -48,6 +53,11 @@ export const zh: Record<FileTraceKey, string> = {
   'font.min': '已达最小字号 {px}px',
   'font.max': '已达最大字号 {px}px',
   'meta.bytes': '{bytes}',
+  'redact.on': '已开启脱敏：敏感内容以 [REDACTED] 显示；点击关闭（自担风险）',
+  'redact.off': '脱敏已关闭：将原样显示文件内容；点击开启',
+  'redact.onLabel': '脱敏中',
+  'redact.offLabel': '脱敏关',
+  'redact.banner': '已脱敏',
 }
 
 export const en: Record<FileTraceKey, string> = {
@@ -74,4 +84,9 @@ export const en: Record<FileTraceKey, string> = {
   'font.min': 'Minimum font size reached ({px}px)',
   'font.max': 'Maximum font size reached ({px}px)',
   'meta.bytes': '{bytes}',
+  'redact.on': 'Redaction on: secrets render as [REDACTED]; click to disable (at your own risk)',
+  'redact.off': 'Redaction off: file content renders verbatim; click to enable',
+  'redact.onLabel': 'Redacting',
+  'redact.offLabel': 'Redaction off',
+  'redact.banner': 'Redacted',
 }
