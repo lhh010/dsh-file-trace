@@ -10,7 +10,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { extractFileOps, groupByFile, knownContentBefore, parseReadContent, parseReadLines, type FileOp } from './file-ops.ts'
+import { extractFileOps, groupByFile, knownContentBefore, parseReadContent, parseReadLines, stitchSegmentReads, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
 import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
 import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
@@ -95,6 +95,11 @@ function diffBlockEntries(rows: readonly DiffRow[], lang: string | undefined): M
 /** Trigger props: session standard kit + locale seat. */
 export type FileTraceButtonProps = PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'fileTrace'>
 
+/** Whether a path is an HTML document eligible for the render preview. */
+function isHtmlPath(path: string): boolean {
+  return /\.(html?|xhtml)$/i.test(path)
+}
+
 /** Diff material for one operation, computed at open time.
  * For an edit the model's payload is only the changed snippet, so a hunched
  * diff needs the file's prior full content: when known (from an earlier
@@ -123,10 +128,23 @@ function diffOf(op: FileOp, prior: string | undefined): readonly DiffRow[] {
 
 /** The header trigger button plus its drawer. */
 export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
-  const ops = useConversation((conversation: ConversationSnapshot) => {
+  const rawOps = useConversation((conversation: ConversationSnapshot) => {
     const chat = conversation.views.get('chat')
     return extractFileOps(chat?.legacy.nodes ?? [], chat?.legacy.runningCalls ?? [])
   })
+  // Stitch is user-triggered (拼合分段读取 button in the drawer head): the
+  // merged read replaces that file's segment rows in the list.
+  const [stitchOn, setStitchOn] = useState(false)
+  const ops = useMemo(() => (stitchOn ? stitchSegmentReads(rawOps) : rawOps), [rawOps, stitchOn])
+  const stitchable = useMemo(() => {
+    const readsByPath = new Map<string, number>()
+    for (const op of rawOps) {
+      if (op.kind !== 'read' || op.read === undefined) continue
+      readsByPath.set(op.path, (readsByPath.get(op.path) ?? 0) + 1)
+    }
+    for (const n of readsByPath.values()) if (n >= 2) return true
+    return false
+  }, [rawOps])
   const groups = useMemo(() => groupByFile(ops), [ops])
   const [open, setOpen] = useState(false)
   // Update check: newest tag from the public mirror, once per open.
@@ -139,6 +157,23 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // Markdown reading mode for .md files: replaces the raw/diff pane with a
   // rendered document (read = file content; write/edit = resulting content).
   const [mdReading, setMdReading] = useState(false)
+  // HTML render mode for .html/.htm/.xhtml files: preview the (redacted)
+  // document in a sandboxed iframe instead of the raw/diff view.
+  const [htmlReading, setHtmlReading] = useState(false)
+  // Sandbox strictness for the render iframe: 'strict' (no scripts),
+  // 'script' (allow-scripts, opaque origin), 'relaxed' (allow-scripts + a
+  // permissions policy for autoplay/fullscreen). Default 'script'.
+  const [htmlSandbox, setHtmlSandbox] = useState<'strict' | 'script' | 'relaxed'>('script')
+  const SANDBOX_ATTR: Record<'strict' | 'script' | 'relaxed', string> = {
+    strict: '',
+    script: 'allow-scripts',
+    relaxed: 'allow-scripts',
+  }
+  const PERMISSIONS_ATTR: Record<'strict' | 'script' | 'relaxed', string> = {
+    strict: '',
+    script: '',
+    relaxed: 'autoplay; fullscreen',
+  }
   // Long diff lines fold to one ellipsized row; the set holds expanded row keys.
   const [expandedLines, setExpandedLines] = useState<ReadonlySet<string>>(new Set())
   // Hunk-fold segments expanded by index; default collapsed.
@@ -533,6 +568,16 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const readRows = useMemo(() => {
     if (viewOp.op?.kind !== 'read' || viewOp.op.read === undefined) return []
     let state = false
+    // Stitched reads carry clean content (no envelope/prefixes): number rows
+    // from the segment's own start line.
+    if (viewOp.op.readClean) {
+      const start = viewOp.op.readStart ?? 1
+      return viewOp.op.read.split('\n').map((line, i) => {
+        const scan = scanLine(line, selectedLang, state)
+        state = scan.inBlock
+        return { line: start + i, nodes: tokensToNodes(scan.tokens) }
+      })
+    }
     return parseReadLines(viewOp.op.read).map((line) => {
       const scan = scanLine(line.text, selectedLang, state)
       state = scan.inBlock
@@ -544,10 +589,10 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // content when the prior state is known, else the edit's new snippet.
   // All payloads come from viewOp (redacted when the toggle is on).
   const readingSrc = useMemo(() => {
-    if (selected === null || !isMarkdownPath(selected.path)) return ''
+    if (selected === null || (!isMarkdownPath(selected.path) && !isHtmlPath(selected.path))) return ''
     const op = viewOp.op
     if (op === undefined) return ''
-    if (op.kind === 'read') return parseReadContent(op.read ?? '')
+    if (op.kind === 'read') return op.readClean ? (op.read ?? '') : parseReadContent(op.read ?? '')
     if (op.kind === 'write') return op.content ?? ''
     if (op.kind === 'edit' && op.edit !== undefined) {
       const prior = viewOp.prior
@@ -559,7 +604,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     return ''
   }, [selected, viewOp])
   // Reset folding when selecting a different operation (the row indexes change).
-  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false) }, [selectedOp])
+  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false); setHtmlReading(false); setHtmlSandbox('script') }, [selectedOp])
 
   // Restore this op's own diff/read scroll position (new ops start at top).
   useEffect(() => {
@@ -696,6 +741,11 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
             <span className={css.drawerMeta}>
               {String(groups.size)} {t('files')} · {String(count)} ops
             </span>
+            {stitchable && (
+              <button type="button" className={css.readModeBtn} data-on={stitchOn ? 'true' : undefined} onClick={() => { setStitchOn(v => !v) }} title={t('stitch.do')}>
+                {stitchOn ? t('stitch.on') : t('stitch.do')}
+              </button>
+            )}
             {newerTag !== undefined && (
               <button type="button" className={css.updateBadge} data-updating={updating ? 'true' : undefined} onClick={onUpdateClick} title={`一键更新到 ${newerTag}（点击触发；失败则复制提示词）`}>
                 {updating ? '更新中…' : `⟳ 更新到 ${newerTag}`}
@@ -744,6 +794,12 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                 {viewOp.hit && redactionOn && (
                   <span className={css.redactBanner} role="status">{t('redact.banner')}</span>
                 )}
+                {viewOp.op?.partial === true && (
+                  <span className={css.redactBanner} role="status">{t('read.partial', { range: viewOp.op.partialRange ?? '' })}</span>
+                )}
+                {viewOp.op?.readStitched !== undefined && (
+                  <span className={css.redactBanner} role="status">{t('read.stitched', { range: viewOp.op.readStitched, count: String(viewOp.op.partialSegments ?? 0) })}</span>
+                )}
                 <button
                   type="button"
                   className={css.readModeBtn}
@@ -764,6 +820,28 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                     {mdReading ? t('md.raw') : t('md.read')}
                   </button>
                 )}
+                {isHtmlPath(selected.path) && !selected.op.isError && (
+                  <button
+                    type="button"
+                    className={css.readModeBtn}
+                    data-on={htmlReading ? 'true' : undefined}
+                    onClick={() => { setHtmlReading(prev => !prev) }}
+                    title={htmlReading ? t('html.raw') : t('html.render')}
+                  >
+                    {htmlReading ? t('html.raw') : t('html.render')}
+                  </button>
+                )}
+                {htmlReading && isHtmlPath(selected.path) && (
+                  <button
+                    type="button"
+                    className={css.readModeBtn}
+                    data-on="true"
+                    onClick={() => { setHtmlSandbox(prev => prev === 'strict' ? 'script' : prev === 'script' ? 'relaxed' : 'strict') }}
+                    title={t(`html.sandbox.${htmlSandbox}`)}
+                  >
+                    {t(`html.sandbox.${htmlSandbox}`)}
+                  </button>
+                )}
                 <button type="button" className={css.close} onClick={() => { setSelected(null) }}>×</button>
               </div>
               {selected.op.isError
@@ -778,6 +856,18 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                   ? (
                     <div className={css.mdPane} data-file-trace-md-pane ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                       <MarkdownView src={readingSrc} baseDir={selected.path.replace(/[\\/][^\\/]*$/, '')} />
+                    </div>
+                  )
+                  : htmlReading && isHtmlPath(selected.path) && readingSrc !== ''
+                  ? (
+                    <div className={css.mdPane} data-file-trace-html-pane>
+                      <iframe
+                        className={css.htmlFrame}
+                        title={selected.path}
+                        sandbox={SANDBOX_ATTR[htmlSandbox]}
+                        allow={PERMISSIONS_ATTR[htmlSandbox]}
+                        srcDoc={readingSrc}
+                      />
                     </div>
                   )
                   : selected.op.kind === 'read'

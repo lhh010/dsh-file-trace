@@ -11,7 +11,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.2'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.3'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +34,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.2'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.3'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -66,7 +66,8 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.3.2` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1` | Declare support for 0.1.3-alpha.1 (not on npm yet; verified on a source-launched host; 0.1.3 breaking changes sit on the host/session plane — zero code delta on this plugin's client surface; typecheck/build/96 tests green) |
+| `v0.3.3` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1` | **HTML render preview**: `.html`/`.htm`/`.xhtml` op previews gain a Render/Raw toggle — a sandboxed iframe (allow-scripts, no same-origin) renders the (redacted) document — animations/interactions run isolated in an opaque origin; relative-path assets do not resolve (a deliberate security trade-off, see Known limitations) |
+| `v0.3.2` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1` | Declare support for 0.1.3-alpha.1 (not on npm yet; verified on a source-launched host; 0.1.3 breaking changes sit on the host/session plane — zero code delta on this plugin's client surface; typecheck/build/96 tests green) |
 | `v0.3.1` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | Docs update: clarify the redaction layer's positioning — display-layer convenience (screenshots / sharing), not a security boundary; session logs keep raw content |
 | `v0.3.0` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | **Secret redaction layer**: sensitive paths mask whole files (`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/private keys…) and ordinary files mask secret-shaped spans (`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM headers…); applied uniformly across diff, read view, markdown mode, and error text; on by default with a one-click toolbar toggle (persisted in localStorage); display-only — session logs are untouched |
 | `v0.2.9` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1` | Declares rc.1 support (alpha.5→rc.1 is version-bump-only, zero code diff; verified on rc.1) |
@@ -107,5 +108,6 @@ Paste this prompt into any DSH session and the agent installs it for you:
 - The edit "full-file context" relies on an earlier in-window write/read of the **same file**; otherwise only the model-provided old_string/new_string snippet is shown.
 - Line-level diff plus intra-line (character-level) highlighting; syntax highlighting is a lightweight regex tokenizer (no syntax tree) with multi-line block-comment state threaded in line order, so complex constructs may be imprecise.
 - **Redaction layer positioning (not a security boundary)**: redaction applies only to this plugin's rendering layer, as a convenience for **screenshots and sharing diffs with others**; it is not a security boundary — raw content remains fully present in the session logs, and any plugin or tool that can read session files sees unredacted content. To truly protect secrets, handle them at the source (credential management, file permissions).
+- **HTML render preview security trade-off**: the iframe uses `sandbox="allow-scripts"` (**scripts allowed**, no same-origin, no forms/popups) — page animations and interaction logic run (the page's own fallback/error handling works too), inside an **opaque origin**: no access to the DSH host page's DOM/storage/cookies and no same-origin requests. `srcDoc` has no base URL, so **relative-path assets (images/CSS/same-directory fetches) do not resolve** (absolute http(s) still loads) — pages depending on sibling local files fall back to their own logic. The render input passes through the redaction layer like every other view, but it renders the document content the model read — do not treat the render view as a trusted-HTML execution environment.
 - **Redaction × mermaid known edge**: in the markdown reading mode, when an **unquoted** mermaid node label contains a redacted secret (the masked `[REDACTED]` carries nested brackets), that diagram fails to parse and falls back to source text (no secret leaks; only the picture is lost). **Workaround**: always quote node labels (`A["text"]`); quoted labels survive masking. Turning redaction off also restores rendering. Session logs always keep the original bytes — redaction affects display only.
 - The zh/en bilingual consistency record lives in `README.i18n.yaml`.

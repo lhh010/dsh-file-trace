@@ -117,6 +117,7 @@
 .readModeBtn:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .readModeBtn[data-on='true'] { border-color: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-state-business-primary); }
 
+.htmlFrame { width: 100%; height: 100%; border: 0; background: #fff; display: block; }
 .mdPane { flex: 1; min-height: 0; overflow-y: auto; margin-right: 12px; background: var(--dsw-alias-bg-base); }
 .mdBody { padding: 14px 18px 24px; font-family: system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 13.5px; line-height: 1.7; color: var(--dsw-alias-label-primary); white-space: normal; word-break: break-word; }
 .mdBody > :first-child { margin-top: 0; }

@@ -13,7 +13,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.2'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.3'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -36,7 +36,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.2'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.3'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -68,7 +68,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.2`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | 声明支持 0.1.3-alpha.1（npm 未发布，源码宿主实机验证；0.1.3 破坏性变更集中在 host/session 侧，client 插件面零代码差异；typecheck/build/96 单测全绿） |
+| `v0.3.3`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | **HTML 渲染预览**：`.html`/`.htm`/`.xhtml` 操作预览头部可切换「渲染/原文」——沙箱 iframe（allow-scripts、禁同源）渲染（脱敏后）文档——动画/交互可运行但不透明源隔离；相对路径资源不解析（安全取舍，详见已知限制） |
+| `v0.3.2`| `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | 声明支持 0.1.3-alpha.1（npm 未发布，源码宿主实机验证；0.1.3 破坏性变更集中在 host/session 侧，client 插件面零代码差异；typecheck/build/96 单测全绿） |
 | `v0.3.1` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | 文档更新：明确脱敏层定位——展示层便利（截图 / 分享场景），非安全边界，会话日志保留原始内容 |
 | `v0.3.0` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | **敏感内容脱敏层**：敏感路径整文件遮罩（`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/私钥等）+ 普通文件按内容形态遮罩（`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM 头等），diff/阅读视图/Markdown 模式/错误文本统一生效；默认开启，面板工具栏一键开关（localStorage 记忆）；仅影响显示，不改会话日志 |
 | `v0.2.9` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | 声明支持 rc.1（alpha.5→rc.1 为纯版本号提交，零代码差异；实机 rc.1 验证通过） |
@@ -109,5 +110,6 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 - 编辑的"完整文件上下文"依赖窗口内更早的**同一文件**写入/读取内容；若无，则仅显示模型提供的 old_string/new_string 片段。
 - 行级 diff + 行内字符级高亮；语法高亮为轻量正则分词（无语法树），多行块注释状态按行序推导、跨行正确着色，复杂构造可能不完全精确。
 - **脱敏层定位（非安全边界）**：脱敏只作用于本插件的渲染层，目的是**截图 / 分享 diff 给他人时的便利保护**；它不是安全边界——原始内容仍完整保留在会话日志中，任何能读取会话文件的插件或工具都能看到未脱敏内容。需要真正保护密钥时应在源头（凭据管理、文件权限）处理。
+- **HTML 渲染预览的安全取舍**：iframe 沙箱**三档可手动切换**（渲染时面板头有一键循环按钮）：`受限`（无脚本）/`脚本`（`allow-scripts`，不透明源）/`宽松`（另加 `allow="autoplay; fullscreen"` 权限策略）。默认 `脚本`；`宽松` 允许音频自动播放等权限，但仍是**不透明源**————页面动画与交互逻辑可运行（页面自己的回退/错误处理也能生效），且运行在**不透明源**里：拿不到 DSH 宿主页面的 DOM/存储/Cookie，无法发起同源请求。`srcDoc` 无基准 URL，**相对路径的资源（图片/CSS/fetch 同目录文件）不解析**（绝对 http(s) 可访问）——依赖本地伴生文件的页面会走自身回退逻辑。渲染输入经过脱敏层（与其它视图一致），但渲染的是模型读到的文档内容本身——不要把渲染视图当作「可信 HTML」的执行环境。
 - **脱敏 × mermaid 已知边界**：Markdown 阅读模式下，若 mermaid 图的**无引号**节点标签里含被脱敏的密钥（遮罩产物 `[REDACTED]` 自带嵌套方括号），该图会因语法破坏而渲染失败、回退显示源码（信息不泄漏，仅图不可看）。**规避方法**：节点标签一律加引号（`A["文本"]` 写作 `A["含密钥的文本"]` 形式即可安全遮罩）；关闭脱敏开关亦可恢复渲染。会话日志始终保留原始字节，仅影响显示。
 - 中英文 README 一致性记录见 `README.i18n.yaml`。

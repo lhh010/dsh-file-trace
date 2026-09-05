@@ -19,6 +19,11 @@ export type FileTraceKey =
   | 'diff.priorUnknown'
   | 'diff.fold'
   | 'md.read'
+  | 'html.render'
+  | 'html.raw'
+  | 'html.sandbox.strict'
+  | 'html.sandbox.script'
+  | 'html.sandbox.relaxed'
   | 'md.raw'
   | 'font.min'
   | 'font.max'
@@ -28,6 +33,10 @@ export type FileTraceKey =
   | 'redact.onLabel'
   | 'redact.offLabel'
   | 'redact.banner'
+  | 'read.partial'
+  | 'read.stitched'
+  | 'stitch.do'
+  | 'stitch.on'
 
 export const zh: Record<FileTraceKey, string> = {
   title: '文件追踪',
@@ -49,6 +58,11 @@ export const zh: Record<FileTraceKey, string> = {
   'diff.priorUnknown': '（变更前的内容不在当前窗口，显示为全新增）',
   'diff.fold': '{count} 行…点击展开',
   'md.read': '阅读',
+  'html.render': '渲染',
+  'html.raw': '原文',
+  'html.sandbox.strict': '沙箱·受限',
+  'html.sandbox.script': '沙箱·脚本',
+  'html.sandbox.relaxed': '沙箱·宽松',
   'md.raw': '原文',
   'font.min': '已达最小字号 {px}px',
   'font.max': '已达最大字号 {px}px',
@@ -58,6 +72,10 @@ export const zh: Record<FileTraceKey, string> = {
   'redact.onLabel': '脱敏中',
   'redact.offLabel': '脱敏关',
   'redact.banner': '已脱敏',
+  'read.partial': '读取被截断（仅第 {range} 行）——预览显示的是不完整文档',
+  'read.stitched': '已拼合 {count} 段分段读取（第 {range} 行）',
+  'stitch.do': '拼合分段读取',
+  'stitch.on': '分段已拼合',
 }
 
 export const en: Record<FileTraceKey, string> = {
@@ -80,6 +98,11 @@ export const en: Record<FileTraceKey, string> = {
   'diff.priorUnknown': '(prior content outside the loaded window; shown all-added)',
   'diff.fold': '{count} lines…click to expand',
   'md.read': 'Reading',
+  'html.render': 'Render',
+  'html.raw': 'Raw',
+  'html.sandbox.strict': 'Sandbox·strict',
+  'html.sandbox.script': 'Sandbox·script',
+  'html.sandbox.relaxed': 'Sandbox·relaxed',
   'md.raw': 'Raw',
   'font.min': 'Minimum font size reached ({px}px)',
   'font.max': 'Maximum font size reached ({px}px)',
@@ -89,4 +112,8 @@ export const en: Record<FileTraceKey, string> = {
   'redact.onLabel': 'Redacting',
   'redact.offLabel': 'Redaction off',
   'redact.banner': 'Redacted',
+  'read.partial': 'Partial read (lines {range} only) — the preview shows an incomplete document',
+  'read.stitched': 'Stitched {count} segment reads (lines {range})',
+  'stitch.do': 'Stitch segment reads',
+  'stitch.on': 'Segments stitched',
 }

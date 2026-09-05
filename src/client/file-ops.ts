@@ -32,6 +32,21 @@ export interface FileOp {
   readonly content?: string
   /** For 'read': the file content returned by the tool result. */
   readonly read?: string
+  /** For read results carrying a (Showing lines a-b) note: the model saw
+   *  only PART of the file, so derived previews are incomplete. */
+  readonly partial?: boolean
+  /** The note range text (e.g. "1-400"). */
+  readonly partialRange?: string
+  /** First line number this read covers. */
+  readonly readStart?: number
+  /** Last line number this read covers. */
+  readonly readEnd?: number
+  /** True when read is already clean content (stitched multi-segment). */
+  readonly readClean?: boolean
+  /** When this op stitches several segments: covered range ("1-1336"). */
+  readonly readStitched?: string
+  /** Number of segments stitched into this op. */
+  readonly partialSegments?: number
 }
 
 /** Tool names mapped to each op kind; unknown names are ignored. */
@@ -114,9 +129,26 @@ function opOfResult(node: ToolResultNode): FileOp | undefined {
     return content.length > 0 ? { ...base, content } : base
   }
   if (kind === 'read') {
+    // A FAILED read carries no file content — its result is an error message
+    // (e.g. "offset 1597 is out of range"). Never treat that as file content:
+    // the read view/render must show only the errorText.
+    if (node.isError) return base
     // The read tool returns the file content as text blocks; join them.
     const text = joinText(node.content)
-    return text.length > 0 ? { ...base, read: text } : base
+    if (text.length === 0) return base
+    const rangeMatch = /\(Showing lines (\d+)-(\d+)(?: of \d+)?\)/.exec(text)
+    const range = rangeMatch?.[1]
+    if (range !== undefined) {
+      return {
+        ...base,
+        read: text,
+        partial: true,
+        partialRange: range,
+        readStart: Number(range.split('-')[0]),
+        readEnd: Number(range.split('-')[1]),
+      }
+    }
+    return { ...base, read: text }
   }
   return base
 }
@@ -258,3 +290,88 @@ export function parseReadLines(raw: string): ReadLine[] {
 }
 
 
+
+
+/**
+ * Stitch segment reads of the same file (contiguous line ranges) into one
+ * full-document read op. The model often reads large files in pieces
+ * ("Showing lines 1-400", "401-800", or explicit-limit segments); a render
+ * preview built from one segment alone is an incomplete document whose
+ * cut-off scripts silently never run. Reads are chained per path when each
+ * next starts at or before the previous last line + 1; overlapping boundary
+ * lines are deduplicated by line number. A chain of two or more segments is
+ * replaced by a single clean-content read covering the combined range;
+ * single-segment and gapped reads pass through unchanged.
+ * @param ops - extracted file operations (any order).
+ * @returns new array with stitched read ops (input order otherwise preserved).
+ */
+export function stitchSegmentReads(ops: readonly FileOp[]): readonly FileOp[] {
+  const readsByPath = new Map<string, FileOp[]>()
+  for (const op of ops) {
+    if (op.kind !== 'read' || op.isError || op.read === undefined) continue
+    // Derive the covered line range from the read result itself (works for
+    // both partial-note reads and plain numbered reads). Footer lines
+    // (End-of-file totals / Output-capped / Showing-lines notes) are envelope
+    // metadata, not content — drop them so the range ends at the real last line.
+    const footerRe = /^\((?:End of file|Output capped|Showing lines)/
+    const rows = parseReadLines(op.read).filter((row) => !footerRe.test(row.text))
+    if (rows.length === 0) continue
+    const list = readsByPath.get(op.path) ?? []
+    list.push({ ...op, readStart: rows[0]!.line, readEnd: rows[rows.length - 1]!.line })
+    readsByPath.set(op.path, list)
+  }
+  const replacement = new Map<string, FileOp>()
+  const dropped = new Set<string>()
+  for (const segs of readsByPath.values()) {
+    if (segs.length < 2) continue
+    segs.sort((a, b) => (a.readStart ?? 0) - (b.readStart ?? 0))
+    let chain: FileOp[] = []
+    const flush = (): void => {
+      if (chain.length < 2) { chain = []; return }
+      const first = chain[0]!
+      const last = chain[chain.length - 1]!
+      const byLine = new Map<number, string>()
+      for (const seg of chain) {
+        for (const row of parseReadLines(seg.read ?? '')) {
+          // Read-tool footers (End-of-file totals, Output-capped notes) are
+          // envelope metadata, not file content — drop them before merging.
+          if (/^\((?:End of file|Output capped|Showing lines)/.test(row.text)) continue
+          byLine.set(row.line, row.text)
+        }
+      }
+      const combined = [...byLine.keys()].sort((a, b) => a - b).map((n) => byLine.get(n)!).join('\n')
+      const merged: FileOp = {
+        ...first,
+        read: combined,
+        readClean: true,
+        partial: false,
+        readStart: first.readStart ?? 0,
+        readEnd: last.readEnd ?? 0,
+        partialRange: `${first.readStart}-${last.readEnd}`,
+        partialSegments: chain.length,
+        readStitched: `${first.readStart}-${last.readEnd}`,
+      }
+      replacement.set(first.callId, merged)
+      for (const seg of chain) dropped.add(seg.callId)
+      chain = []
+    }
+    for (const seg of segs) {
+      const prev = chain[chain.length - 1]
+      if (prev !== undefined && (seg.readStart ?? 0) > (prev.readEnd ?? -Infinity) + 1) flush()
+      chain.push(seg)
+    }
+    flush()
+  }
+  if (replacement.size === 0) return ops
+  const out: FileOp[] = []
+  let emitted = false
+  for (const op of ops) {
+    if (dropped.has(op.callId)) {
+      const merged = replacement.get(op.callId)
+      if (merged !== undefined && !emitted) { out.push(merged); emitted = true }
+      continue
+    }
+    out.push(op)
+  }
+  return out
+}
