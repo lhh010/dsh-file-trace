@@ -15,6 +15,17 @@ describe('isSensitivePath', () => {
     expect(isSensitivePath('docs/readme.md')).toBe(false)
     expect(isSensitivePath('package.json')).toBe(false)
   })
+  it('does not mask files whose names merely CONTAIN a pattern inside a longer word', () => {
+    expect(isSensitivePath('src/tokenizer.ts')).toBe(false)
+    expect(isSensitivePath('config/dev.environment.ts')).toBe(false)
+    expect(isSensitivePath('src/style.keys.ts')).toBe(false)
+    expect(isSensitivePath('docs/api-tokens.md')).toBe(false)
+  })
+  it('still masks pattern matches at a word boundary', () => {
+    expect(isSensitivePath('deploy/.env.local')).toBe(true)
+    expect(isSensitivePath('app/mytoken.yaml')).toBe(true)
+    expect(isSensitivePath('config/passwords.yml')).toBe(true)
+  })
 })
 
 describe('redactContentText', () => {
@@ -42,6 +53,16 @@ describe('redactContentText', () => {
   it('leaves ordinary code untouched', () => {
     const code = 'const x = 42\nconsole.log("count", x)'
     expect(redactContentText(code)).toBe(code)
+  })
+  it('leaves generic bare-word assignments alone (key/auth/token/pass label ordinary content too)', () => {
+    expect(redactContentText("key: 'ArrowUp'")).toBe("key: 'ArrowUp'")
+    expect(redactContentText('--key: red')).toBe('--key: red')
+    expect(redactContentText('token: a lexical unit')).toBe('token: a lexical unit')
+    expect(redactContentText('auth: none')).toBe('auth: none')
+  })
+  it('still masks qualified secret field names', () => {
+    expect(redactContentText('access_token: ghp_abcdefghijklmnopqrst')).toBe('access_token: ' + REDACTED)
+    expect(redactContentText('client_secret: shhh-1234567890')).toBe('client_secret: ' + REDACTED)
   })
 })
 

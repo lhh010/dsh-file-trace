@@ -8,8 +8,8 @@
  *    *credential*, *token*, *api-key*, private keys, …) are masked whole —
  *    every non-empty line becomes [REDACTED].
  * 2. Content layer: for ordinary files, secret-SHAPED lines and tokens are
- *    masked in place (api_key/token/password assignments, sk-/AKIA/ghp_/
- *    xox prefixes, Bearer headers, PEM private-key block headers).
+ *    masked in place (api_key/access_token/password assignments, sk-/AKIA/
+ *    ghp_/xox prefixes, Bearer headers, PEM private-key block headers).
  *
  * Redaction is display-only: the session log and the tool results keep their
  * original bytes; this layer guarantees only that this plugin never renders
@@ -27,20 +27,33 @@ export interface RedactionOutcome {
   readonly hit: boolean
 }
 
-/** Lowercased filename substrings that mark a whole file as sensitive. */
-const SENSITIVE_PATH_PATTERNS: readonly string[] = [
-  '.env', 'secret', 'credential', 'token', 'api-key', 'apikey', 'password',
-  'passwd', 'private_key', 'privatekey', 'id_rsa', 'id_ed25519',
+/**
+ * Filename substrings that mark a whole file as sensitive. Each pattern is
+ * matched case-insensitively against the full path with a RIGHT boundary
+ * (the pattern must not continue into `[a-z0-9]`) so `tokenizer.ts`,
+ * `dev.environment.ts`, and `style.keys.ts` stay ordinary files while
+ * `.env.local`, `credentials.json`, and `id_rsa` still mask whole. Plurals
+ * are listed only where the plural names a secret STORE (credentials /
+ * secrets / passwords); a bare `tokens` is usually documentation
+ * (api-tokens.md) and is deliberately absent.
+ */
+const SENSITIVE_PATH_RES: readonly RegExp[] = [
+  '.env', 'secret', 'secrets', 'credential', 'credentials', 'token', 'api-key', 'apikey',
+  'password', 'passwords', 'passwd', 'private_key', 'privatekey', 'id_rsa', 'id_ed25519',
   '.pem', '.key', '.p12', '.pfx',
-]
+].map((pattern) => new RegExp(`${escapeRe(pattern)}(?![a-z0-9])`, 'i'))
+
+/** Escape literal text for embedding into a RegExp. */
+function escapeRe(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 /**
  * Whether a path's own name marks the file as sensitive (case-insensitive,
  * matched against the full path so .env in any directory counts).
  */
 export function isSensitivePath(path: string): boolean {
-  const lower = path.toLowerCase()
-  return SENSITIVE_PATH_PATTERNS.some((pattern) => lower.includes(pattern))
+  return SENSITIVE_PATH_RES.some((re) => re.test(path))
 }
 
 /**
@@ -53,15 +66,18 @@ const ASSIGNMENT_RE = /^(\s*["']?[A-Za-z0-9_.-]*["']?\s*[:=]\s*)(\S.*)$/
 /**
  * Field names whose assigned value is a secret. Stored in NORMALIZED form
  * (lower-case, separators stripped — see normalizeField) so api_key/API-KEY/
- * "api-key" all match one entry.
+ * "api-key" all match one entry. Generic bare words (key / token / auth /
+ * pass) are deliberately EXCLUDED: they label far more ordinary content
+ * (keyboard keys, CSS custom properties, lexical tokens) than secrets —
+ * Bearer-scheme headers stay covered by BEARER_RE below.
  */
 const SECRET_FIELDS = new Set([
-  'apikey', 'key', 'secret', 'secretkey',
-  'token', 'apitoken', 'accesstoken', 'refreshtoken', 'idtoken', 'auth',
-  'password', 'passwd', 'pass', 'pwd',
+  'apikey', 'secret', 'secretkey',
+  'apitoken', 'accesstoken', 'refreshtoken', 'idtoken',
+  'password', 'passwd', 'pwd',
   'clientsecret', 'privatekey',
   'accesskey', 'accesskeyid', 'secretaccesskey',
-  'bearer', 'authorization',
+  'authorization',
 ])
 
 /** Bearer-scheme token in free text (covers HTTP headers in logs/configs). */

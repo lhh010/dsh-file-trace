@@ -112,12 +112,12 @@
 
 /* Markdown reading mode: replaces the terminal-style raw/diff pane for .md
    files with a normally rendered document (no diff colors, reading typography). */
-.redactBanner { flex: none; font-size: 11px; line-height: 20px; padding: 0 7px; border-radius: 6px; color: var(--dsw-alias-state-warning-primary, #b8860b); background: var(--dsw-alias-interactive-bg-hover); white-space: nowrap; }
+.redactBanner { flex: none; font-size: 11px; line-height: 20px; padding: 0 7px; border-radius: 6px; color: var(--dsw-alias-state-warn-primary); background: var(--dsw-alias-interactive-bg-hover); white-space: nowrap; }
 .readModeBtn { flex: none; border: 1px solid var(--dsw-alias-border-l1); border-radius: 7px; background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; font-size: 11px; line-height: 20px; padding: 0 8px; cursor: pointer; }
 .readModeBtn:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .readModeBtn[data-on='true'] { border-color: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-state-business-primary); }
 
-.htmlFrame { width: 100%; height: 100%; border: 0; background: #fff; display: block; }
+.htmlFrame { width: 100%; height: 100%; border: 0; background: var(--dsw-alias-bg-base); display: block; }
 .mdPane { flex: 1; min-height: 0; overflow-y: auto; margin-right: 12px; background: var(--dsw-alias-bg-base); }
 .mdBody { padding: 14px 18px 24px; font-family: system-ui, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 13.5px; line-height: 1.7; color: var(--dsw-alias-label-primary); white-space: normal; word-break: break-word; }
 .mdBody > :first-child { margin-top: 0; }
