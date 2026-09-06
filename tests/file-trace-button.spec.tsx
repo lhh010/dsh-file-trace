@@ -161,5 +161,48 @@ describe('FileTraceButton', () => {
     const toast = document.getElementById('dsh-file-trace-font-toast')
     expect(toast?.textContent).toContain('9')
   })
+
+  it('an ERRORED pdf read (the binary-file refusal) still gains the render toggle — the render streams the saved file, not the payload', async () => {
+    // jsdom has no blob URL implementation — stub it for the PdfFrame fetch.
+    const realCreate = URL.createObjectURL
+    const realRevoke = URL.revokeObjectURL
+    URL.createObjectURL = (): string => 'blob:mock-' + String(Math.random())
+    URL.revokeObjectURL = () => {}
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    })) as unknown as typeof fetch
+    const realFetch = globalThis.fetch
+    globalThis.fetch = fetchMock
+    try {
+      const readNode = toolNode('r1', 'read', { file_path: 'C:/work/report.pdf' }, 1, true, [])
+      const { container } = render(<FileTraceButton {...propsWith(conversationOf([readNode]))} />)
+      fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+      fireEvent.click(screen.getByText('读取').closest('button') as HTMLElement)
+      // The toggle shows for an absolute .pdf path; off by default (no iframe).
+      const toggle = screen.getByText('渲染').closest('button') as HTMLElement
+      expect(container.querySelector('[data-file-trace-pdf-pane]')).toBeNull()
+      fireEvent.click(toggle)
+      await vi.waitFor(() => {
+        expect(container.querySelector('[data-file-trace-pdf-pane] iframe')).toBeTruthy()
+      })
+      // The bytes streamed through the host asset route…
+      expect(fetchMock).toHaveBeenCalledWith('/dsh-file-trace/asset?path=C%3A%2Fwork%2Freport.pdf', expect.anything())
+      // …and re-wrapped into an explicitly-typed blob URL (native PDF viewer).
+      expect((container.querySelector('[data-file-trace-pdf-pane] iframe') as HTMLIFrameElement).src.startsWith('blob:')).toBe(true)
+    } finally {
+      URL.createObjectURL = realCreate
+      URL.revokeObjectURL = realRevoke
+      globalThis.fetch = realFetch
+    }
+  })
+
+  it('a relative-path pdf read op gains no render toggle (the asset route serves absolute paths only)', () => {
+    const readNode = toolNode('r2', 'read', { file_path: 'docs/report.pdf' }, 1, false, [])
+    render(<FileTraceButton {...propsWith(conversationOf([readNode]))} />)
+    fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+    fireEvent.click(screen.getByText('读取').closest('button') as HTMLElement)
+    expect(screen.queryByText('渲染')).toBeNull()
+  })
 })
 

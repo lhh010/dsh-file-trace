@@ -3,7 +3,9 @@
  * local PNG/JPEG/GIF/WebP/BMP/AVIF/ICO files render in the browser through
  * GET /dsh-file-trace/asset?path=<absolute path>. Extension-whitelisted,
  * size-capped, read-only; SVG is deliberately excluded (same-origin script
- * execution) and falls back to a file chip on the client.
+ * execution) and falls back to a file chip on the client. PDF is served for
+ * the render preview of .pdf op targets (the client wraps the bytes in an
+ * explicitly-typed Blob so the browser's native PDF viewer opens).
  */
 import { stat } from 'node:fs/promises'
 import { readFile } from 'node:fs/promises'
@@ -23,6 +25,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   bmp: 'image/bmp',
   avif: 'image/avif',
   ico: 'image/x-icon',
+  pdf: 'application/pdf',
 }
 /** Refuse to stream absurdly large files (frame GIFs stay far below this). */
 const MAX_BYTES = 64 * 1024 * 1024

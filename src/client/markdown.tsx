@@ -152,8 +152,8 @@ function isLoadableImage(url: string): boolean {
 /** Local image extensions the host asset route serves (no SVG: scripts). */
 const LOCAL_IMAGE_RE = /\.(png|jpe?g|gif|webp|bmp|avif|ico)$/i
 
-/** Host route that streams a whitelisted local image by absolute path. */
-function assetUrl(abs: string): string {
+/** Host route that streams a whitelisted local file by absolute path. */
+export function assetUrl(abs: string): string {
   return '/dsh-file-trace/asset?path=' + encodeURIComponent(abs.replace(/\\/g, '/'))
 }
 

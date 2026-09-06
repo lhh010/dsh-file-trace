@@ -21,6 +21,9 @@ export type FileTraceKey =
   | 'md.read'
   | 'html.render'
   | 'html.raw'
+  | 'pdf.render'
+  | 'pdf.raw'
+  | 'pdf.loading'
   | 'html.sandbox.strict'
   | 'html.sandbox.script'
   | 'html.sandbox.relaxed'
@@ -60,6 +63,9 @@ export const zh: Record<FileTraceKey, string> = {
   'md.read': '阅读',
   'html.render': '渲染',
   'html.raw': '原文',
+  'pdf.render': '渲染',
+  'pdf.raw': '原文',
+  'pdf.loading': 'PDF 加载中…',
   'html.sandbox.strict': '沙箱·受限',
   'html.sandbox.script': '沙箱·脚本',
   'html.sandbox.relaxed': '沙箱·宽松',
@@ -100,6 +106,9 @@ export const en: Record<FileTraceKey, string> = {
   'md.read': 'Reading',
   'html.render': 'Render',
   'html.raw': 'Raw',
+  'pdf.render': 'Render',
+  'pdf.raw': 'Raw',
+  'pdf.loading': 'Loading PDF…',
   'html.sandbox.strict': 'Sandbox·strict',
   'html.sandbox.script': 'Sandbox·script',
   'html.sandbox.relaxed': 'Sandbox·relaxed',

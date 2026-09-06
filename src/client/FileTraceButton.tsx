@@ -15,7 +15,8 @@ import { renderCompatBanner } from './compat.ts'
 import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
 import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import { scanLine, isColored, langOfPath, hasBlockComment, type TokenType, type CodeToken } from './highlight.ts'
-import { MarkdownView, isMarkdownPath } from './markdown.tsx'
+import { MarkdownView, isMarkdownPath, assetUrl } from './markdown.tsx'
+import type { FileTraceKey } from './locales.ts'
 import { redactText } from './redact.ts'
 import css from './FileTrace.module.css'
 
@@ -100,6 +101,55 @@ function isHtmlPath(path: string): boolean {
   return /\.(html?|xhtml)$/i.test(path)
 }
 
+/** Whether a path is a PDF document eligible for the render preview. */
+function isPdfPath(path: string): boolean {
+  return /\.pdf$/i.test(path)
+}
+
+/** Whether a path is absolute (drive / POSIX root / UNC). The asset route
+ *  serves by absolute path only: a relative op path resolves against the
+ *  host process cwd, not the session workspace, so it cannot render. */
+function isAbsolutePath(path: string): boolean {
+  const rooted = path.startsWith('/') || path.startsWith('\\')
+  return /^[A-Za-z]:/.test(path) || rooted
+}
+
+/** The browser-native PDF preview of one traced PDF file: the bytes stream
+ *  through the host asset route and re-wrap into an explicitly-typed Blob —
+ *  a direct iframe src can fall back to a download when the MIME arrives
+ *  wrong (old host process / proxy caches application/octet-stream). */
+function PdfFrame(props: { path: string; t: (key: FileTraceKey) => string }) {
+  const [state, setState] = useState<{ kind: 'loading' } | { kind: 'ready'; url: string } | { kind: 'error'; message: string }>({ kind: 'loading' })
+  useEffect(() => {
+    const controller = new AbortController()
+    let objectUrl: string | undefined
+    setState({ kind: 'loading' })
+    void (async () => {
+      try {
+        const response = await fetch(assetUrl(props.path), { signal: controller.signal })
+        if (!response.ok) throw new Error('HTTP ' + String(response.status))
+        const bytes = await response.arrayBuffer()
+        if (controller.signal.aborted) return
+        objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+        setState({ kind: 'ready', url: objectUrl })
+      } catch (error) {
+        if (!controller.signal.aborted) setState({ kind: 'error', message: error instanceof Error ? error.message : String(error) })
+      }
+    })()
+    return () => {
+      controller.abort()
+      if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl)
+    }
+  }, [props.path])
+  if (state.kind === 'loading') return <div className={css.mdPane} data-file-trace-pdf-loading>{props.t('pdf.loading')}</div>
+  if (state.kind === 'error') return <div className={css.mdPane} data-file-trace-pdf-error role="alert">{state.message}</div>
+  return (
+    <div className={css.mdPane} data-file-trace-pdf-pane>
+      <iframe className={css.htmlFrame} title={props.path} src={state.url} />
+    </div>
+  )
+}
+
 /** Diff material for one operation, computed at open time.
  * For an edit the model's payload is only the changed snippet, so a hunched
  * diff needs the file's prior full content: when known (from an earlier
@@ -164,6 +214,9 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // 'script' (allow-scripts, opaque origin), 'relaxed' (allow-scripts + a
   // permissions policy for autoplay/fullscreen). Default 'script'.
   const [htmlSandbox, setHtmlSandbox] = useState<'strict' | 'script' | 'relaxed'>('script')
+  // PDF render mode for .pdf files: the browser-native viewer over the host
+  // asset route (see PdfFrame). Reset per selected op like the other modes.
+  const [pdfReading, setPdfReading] = useState(false)
   const SANDBOX_ATTR: Record<'strict' | 'script' | 'relaxed', string> = {
     strict: '',
     script: 'allow-scripts',
@@ -604,7 +657,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     return ''
   }, [selected, viewOp])
   // Reset folding when selecting a different operation (the row indexes change).
-  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false); setHtmlReading(false); setHtmlSandbox('script') }, [selectedOp])
+  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false); setHtmlReading(false); setHtmlSandbox('script'); setPdfReading(false) }, [selectedOp])
 
   // Restore this op's own diff/read scroll position (new ops start at top).
   useEffect(() => {
@@ -842,9 +895,24 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                     {t(`html.sandbox.${htmlSandbox}`)}
                   </button>
                 )}
+                {isPdfPath(selected.path) && isAbsolutePath(selected.path) && (
+                  <button
+                    type="button"
+                    className={css.readModeBtn}
+                    data-on={pdfReading ? 'true' : undefined}
+                    onClick={() => { setPdfReading(prev => !prev) }}
+                    title={pdfReading ? t('pdf.raw') : t('pdf.render')}
+                  >
+                    {pdfReading ? t('pdf.raw') : t('pdf.render')}
+                  </button>
+                )}
                 <button type="button" className={css.close} onClick={() => { setSelected(null) }}>×</button>
               </div>
-              {selected.op.isError
+              {pdfReading && isPdfPath(selected.path)
+                ? (
+                  <PdfFrame path={selected.path} t={t} />
+                )
+                : selected.op.isError
                 ? (
                   <div className={css.readContent} data-file-trace-read data-error="true" ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                     <div className={css.readError} role="alert">
