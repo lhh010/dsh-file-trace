@@ -11,7 +11,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.6'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.7'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +34,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.6'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.7'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -66,7 +66,8 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
-| `v0.3.6` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1`, `0.1.3-alpha.2` | Declare support for 0.1.3-alpha.2 (published on npm, pinned-version real-host verified; alpha.2 changes sit on the pi-ai / web-header / subagent-messaging / host planes - zero code delta on this plugin's client surface; typecheck/build/tests green) |
+| `v0.3.6` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1`, `0.1.3-alpha.2` | Declare support for 0.1.3-alpha.2 (published on npm, pinned-version real-host verified; alpha.2 changes sit on the pi-ai / web-header / subagent-messaging / host planes - zero code delta on this plugin's client surface; typecheck/build/tests green) |
+| `v0.3.7` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1`, `0.1.3-alpha.2` | Fix: a document starting with a `---` divider followed by a later divider swallowed the heading and body as YAML frontmatter (client renderer fix, DSH-independent) |
 | `v0.3.4` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1` | **PDF render preview**: `.pdf` ops (read / write / edit) gain a Render/Raw toggle — the file bytes stream through the host asset route into an explicitly-typed `application/pdf` Blob, opened by the browser's native PDF viewer; absolute paths only (a relative op path cannot locate the session workspace) |
 | `v0.3.3` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1` | **HTML render preview**: `.html`/`.htm`/`.xhtml` op previews gain a Render/Raw toggle — a sandboxed iframe (allow-scripts, no same-origin) renders the (redacted) document — animations/interactions run isolated in an opaque origin; relative-path assets do not resolve (a deliberate security trade-off, see Known limitations) |
 | `v0.3.2` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1` | Declare support for 0.1.3-alpha.1 (not on npm yet; verified on a source-launched host; 0.1.3 breaking changes sit on the host/session plane — zero code delta on this plugin's client surface; typecheck/build/96 tests green) |

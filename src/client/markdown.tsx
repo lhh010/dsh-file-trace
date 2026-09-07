@@ -262,11 +262,15 @@ export function parseBlocks(src: string): readonly Block[] {
   const lines = src.replace(/\r\n?/g, '\n').split('\n')
   const blocks: Block[] = []
   let i = 0
-  // YAML frontmatter: a '---' first line closed by the next '---'.
+  // YAML frontmatter: a '---' first line closed by the next '---', where the
+  // enclosed content opens with a YAML mapping key ('name:'). Without the key
+  // check, a document that merely starts with a '---' thematic break swallows
+  // everything up to a later divider as frontmatter.
   if (lines[0] !== undefined && lines[0].trim() === '---') {
     let j = 1
     while (j < lines.length && lines[j]!.trim() !== '---') j += 1
-    if (j < lines.length) {
+    const first = lines.slice(1, j).find((l) => l.trim() !== '')
+    if (j < lines.length && first !== undefined && /^[ \t]*[A-Za-z][\w.-]*[ \t]*:(\s|$)/.test(first)) {
       blocks.push({ kind: 'frontmatter', text: lines.slice(1, j).join('\n') })
       i = j + 1
     }

@@ -61,6 +61,18 @@ describe('parseBlocks', () => {
     const blocks = parseBlocks('---\ntitle: x\n---\n\nbody')
     expect(blocks[0]).toMatchObject({ kind: 'frontmatter', text: 'title: x' })
   })
+
+  it('treats a leading --- as a thematic break when the closed block has no YAML mapping key', () => {
+    // A fragment that starts with a divider followed by a heading (and a later
+    // divider) must not swallow the heading as frontmatter.
+    const blocks = parseBlocks('---\n## Section\nbody\n---\n\n## Next')
+    expect(blocks.map((b) => b.kind)).toEqual(['hr', 'heading', 'para', 'hr', 'heading'])
+  })
+
+  it('does not treat a closed --- block whose content is prose as frontmatter', () => {
+    const blocks = parseBlocks('---\nCorridor verification record text\n---')
+    expect(blocks.map((b) => b.kind)).toEqual(['hr', 'para', 'hr'])
+  })
 })
 
 describe('renderInline', () => {
