@@ -24,6 +24,9 @@ export type FileTraceKey =
   | 'pdf.render'
   | 'pdf.raw'
   | 'pdf.loading'
+  | 'svg.render'
+  | 'svg.raw'
+  | 'svg.missing'
   | 'html.sandbox.strict'
   | 'html.sandbox.script'
   | 'html.sandbox.relaxed'
@@ -66,6 +69,9 @@ export const zh: Record<FileTraceKey, string> = {
   'pdf.render': '渲染',
   'pdf.raw': '原文',
   'pdf.loading': 'PDF 加载中…',
+  'svg.render': '渲染',
+  'svg.raw': '原文',
+  'svg.missing': '本次会话没有该 SVG 的完整内容（读取被截断或分段未拼合），无法渲染',
   'html.sandbox.strict': '沙箱·受限',
   'html.sandbox.script': '沙箱·脚本',
   'html.sandbox.relaxed': '沙箱·宽松',
@@ -109,6 +115,9 @@ export const en: Record<FileTraceKey, string> = {
   'pdf.render': 'Render',
   'pdf.raw': 'Raw',
   'pdf.loading': 'Loading PDF…',
+  'svg.render': 'Render',
+  'svg.raw': 'Raw',
+  'svg.missing': 'No complete SVG content in this session (the read was truncated or its segments are not stitched); cannot render',
   'html.sandbox.strict': 'Sandbox·strict',
   'html.sandbox.script': 'Sandbox·script',
   'html.sandbox.relaxed': 'Sandbox·relaxed',

@@ -97,6 +97,15 @@ describe('renderInline', () => {
     expect(kinds('use `const` now')).toEqual(['text', 'code', 'text'])
     expect(kinds('a \\*not em\\* b')).toEqual(['text'])
   })
+
+  it('routes local svg embeds through the host asset route as <img>', () => {
+    const nodes = renderInline('![diagram](./assets/diagram.svg)', 'k', { baseDir: 'E:/work' })
+    expect(nodes).toHaveLength(1)
+    const img = nodes[0] as { type: string; props: { src: string } }
+    expect(img.type).toBe('img')
+    expect(img.props.src).toContain('/dsh-file-trace/asset?path=')
+    expect(decodeURIComponent(img.props.src)).toContain('E:/work/assets/diagram.svg')
+  })
 })
 
 describe('MarkdownView', () => {

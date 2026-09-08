@@ -106,6 +106,12 @@ function isPdfPath(path: string): boolean {
   return /\.pdf$/i.test(path)
 }
 
+/** Whether a path is an SVG document eligible for the render preview (the
+ *  preview renders the op's own payload, so no absolute path is required). */
+function isSvgPath(path: string): boolean {
+  return /\.svg$/i.test(path)
+}
+
 /** Whether a path is absolute (drive / POSIX root / UNC). The asset route
  *  serves by absolute path only: a relative op path resolves against the
  *  host process cwd, not the session workspace, so it cannot render. */
@@ -146,6 +152,66 @@ function PdfFrame(props: { path: string; t: (key: FileTraceKey) => string }) {
   return (
     <div className={css.mdPane} data-file-trace-pdf-pane>
       <iframe className={css.htmlFrame} title={props.path} src={state.url} />
+    </div>
+  )
+}
+
+/** The rendered preview of one traced SVG file: the op's own payload wraps
+ *  into an image/svg+xml Blob URL for an <img> — SVG scripts never execute in
+ *  image context, so no sandbox staging is needed (unlike the HTML viewer),
+ *  and no host route is involved. */
+function SvgFrame(props: { path: string; src: string; t: (key: FileTraceKey) => string }) {
+  const [state, setState] = useState<{ kind: 'loading' } | { kind: 'url'; url: string; via: 'asset' | 'payload' } | { kind: 'error' }>({ kind: 'loading' })
+  const [imgFailed, setImgFailed] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    let objectUrl: string | undefined
+    setState({ kind: 'loading' })
+    void (async () => {
+      // Source order: (1) the host asset route — the file's real bytes, immune
+      // to any session-payload corruption, but 404 on a host half older than
+      // the SVG whitelist; (2) the op payload as an image/svg+xml blob, only
+      // after DOMParser proves it well-formed XML so a corrupted read can
+      // never show a silent broken image.
+      try {
+        const response = await fetch(assetUrl(props.path), { signal: controller.signal })
+        if (!response.ok) throw new Error('HTTP ' + String(response.status))
+        const blob = await response.blob()
+        if (controller.signal.aborted) return
+        objectUrl = URL.createObjectURL(blob)
+        setState({ kind: 'url', url: objectUrl, via: 'asset' })
+        return
+      } catch { /* asset route unavailable: payload below */ }
+      try {
+        if (controller.signal.aborted) return
+        const parsed = new DOMParser().parseFromString(props.src, 'image/svg+xml')
+        if (parsed.getElementsByTagName('parsererror').length > 0) throw new Error('payload XML invalid')
+        objectUrl = URL.createObjectURL(new Blob([props.src], { type: 'image/svg+xml' }))
+        setState({ kind: 'url', url: objectUrl, via: 'payload' })
+      } catch {
+        if (!controller.signal.aborted) setState({ kind: 'error' })
+      }
+    })()
+    return () => {
+      controller.abort()
+      if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl)
+    }
+  }, [props.path, props.src])
+  if (state.kind === 'loading') return <div className={css.mdPane} data-file-trace-svg-pane data-svg-state="loading">{props.t('pdf.loading')}</div>
+  if (state.kind === 'error') return <div className={css.mdPane} data-file-trace-svg-missing role="alert">{props.t('svg.missing')}</div>
+  // A broken <img> falls back to a sandboxed iframe (scripts blocked, SMIL
+  // animations still run): the sandbox keeps SVG's same-origin script risk
+  // inert in both shapes.
+  if (imgFailed) {
+    return (
+      <div className={css.mdPane} data-file-trace-svg-pane data-svg-state="iframe">
+        <iframe className={css.htmlFrame} title={props.path} src={state.url} sandbox="" />
+      </div>
+    )
+  }
+  return (
+    <div className={css.mdPane} data-file-trace-svg-pane data-svg-state={state.via === 'asset' ? 'img-asset' : 'img-payload'}>
+      <img className={css.mdImg} src={state.url} alt={props.path} onError={() => { setImgFailed(true) }} />
     </div>
   )
 }
@@ -217,6 +283,9 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // PDF render mode for .pdf files: the browser-native viewer over the host
   // asset route (see PdfFrame). Reset per selected op like the other modes.
   const [pdfReading, setPdfReading] = useState(false)
+  // SVG render mode for .svg files: an <img> over the host asset route.
+  // Reset per selected op like the other modes.
+  const [svgReading, setSvgReading] = useState(false)
   const SANDBOX_ATTR: Record<'strict' | 'script' | 'relaxed', string> = {
     strict: '',
     script: 'allow-scripts',
@@ -642,7 +711,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   // content when the prior state is known, else the edit's new snippet.
   // All payloads come from viewOp (redacted when the toggle is on).
   const readingSrc = useMemo(() => {
-    if (selected === null || (!isMarkdownPath(selected.path) && !isHtmlPath(selected.path))) return ''
+    if (selected === null || (!isMarkdownPath(selected.path) && !isHtmlPath(selected.path) && !isSvgPath(selected.path))) return ''
     const op = viewOp.op
     if (op === undefined) return ''
     if (op.kind === 'read') return op.readClean ? (op.read ?? '') : parseReadContent(op.read ?? '')
@@ -656,8 +725,26 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
     }
     return ''
   }, [selected, viewOp])
+  // SVG render source: the selected op's payload when it forms a complete
+  // document (contains the closing </svg>); otherwise the newest complete
+  // read of the same path — a truncated/partial read is not well-formed XML
+  // and its <img> would be silently broken. Undefined = not renderable.
+  const svgSrc = useMemo(() => {
+    if (selected === null || !isSvgPath(selected.path)) return undefined
+    const path = selected.path
+    if (readingSrc.includes('</svg>')) return readingSrc
+    let newest: { at: number; text: string } | undefined
+    for (const op of ops) {
+      if (op.path !== path || op.kind !== 'read' || op.isError || op.read === undefined) continue
+      const text = op.readClean ? op.read : parseReadContent(op.read)
+      if (!text.includes('</svg>')) continue
+      if (newest === undefined || op.time > newest.at) newest = { at: op.time, text }
+    }
+    if (newest === undefined) return undefined
+    return redactionOn ? redactText(path, newest.text).text : newest.text
+  }, [selected, readingSrc, ops, redactionOn])
   // Reset folding when selecting a different operation (the row indexes change).
-  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false); setHtmlReading(false); setHtmlSandbox('script'); setPdfReading(false) }, [selectedOp])
+  useEffect(() => { setExpandedLines(new Set()); setExpandedFolds(new Set()); setMdReading(false); setHtmlReading(false); setHtmlSandbox('script'); setPdfReading(false); setSvgReading(false) }, [selectedOp])
 
   // Restore this op's own diff/read scroll position (new ops start at top).
   useEffect(() => {
@@ -906,9 +993,30 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                     {pdfReading ? t('pdf.raw') : t('pdf.render')}
                   </button>
                 )}
+                {isSvgPath(selected.path) && !selected.op.isError && (
+                  <button
+                    type="button"
+                    className={css.readModeBtn}
+                    data-on={svgReading ? 'true' : undefined}
+                    onClick={() => { setSvgReading(prev => !prev) }}
+                    title={svgReading ? t('svg.raw') : t('svg.render')}
+                  >
+                    {svgReading ? t('svg.raw') : t('svg.render')}
+                  </button>
+                )}
                 <button type="button" className={css.close} onClick={() => { setSelected(null) }}>×</button>
               </div>
-              {pdfReading && isPdfPath(selected.path)
+              {svgReading && isSvgPath(selected.path) && svgSrc === undefined
+                ? (
+                  <div className={css.mdPane} data-file-trace-svg-missing role="alert">
+                    {t('svg.missing')}
+                  </div>
+                )
+                : svgReading && isSvgPath(selected.path) && svgSrc !== undefined
+                ? (
+                  <SvgFrame path={selected.path} src={svgSrc} t={t} />
+                )
+                : pdfReading && isPdfPath(selected.path)
                 ? (
                   <PdfFrame path={selected.path} t={t} />
                 )

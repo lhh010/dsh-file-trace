@@ -149,8 +149,9 @@ function isLoadableImage(url: string): boolean {
   return /^(https?:|data:image\/|blob:)/i.test(url)
 }
 
-/** Local image extensions the host asset route serves (no SVG: scripts). */
-const LOCAL_IMAGE_RE = /\.(png|jpe?g|gif|webp|bmp|avif|ico)$/i
+/** Local image extensions the host asset route serves (SVG renders only in
+ *  <img> context, where its scripts never execute). */
+const LOCAL_IMAGE_RE = /\.(png|jpe?g|gif|webp|bmp|avif|ico|svg)$/i
 
 /** Host route that streams a whitelisted local file by absolute path. */
 export function assetUrl(abs: string): string {

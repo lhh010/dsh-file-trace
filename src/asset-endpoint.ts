@@ -1,9 +1,10 @@
 /**
  * Host-side local image asset route for the markdown reading mode: embeds of
- * local PNG/JPEG/GIF/WebP/BMP/AVIF/ICO files render in the browser through
+ * local PNG/JPEG/GIF/WebP/BMP/AVIF/ICO/SVG files render in the browser through
  * GET /dsh-file-trace/asset?path=<absolute path>. Extension-whitelisted,
- * size-capped, read-only; SVG is deliberately excluded (same-origin script
- * execution) and falls back to a file chip on the client. PDF is served for
+ * size-capped, read-only. SVG is served only for <img>-based consumption
+ * (markdown embeds and the .svg op preview) — SVG scripts never execute in
+ * image context, matching the better-sidebar image viewer. PDF is served for
  * the render preview of .pdf op targets (the client wraps the bytes in an
  * explicitly-typed Blob so the browser's native PDF viewer opens).
  */
@@ -15,7 +16,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 
 const ASSET_PATH = '/dsh-file-trace/asset'
-/** Served image types keyed by extension (no SVG: same-origin scripts). */
+/** Served image types keyed by extension (SVG only for <img> consumers). */
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   png: 'image/png',
   jpg: 'image/jpeg',
@@ -25,6 +26,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   bmp: 'image/bmp',
   avif: 'image/avif',
   ico: 'image/x-icon',
+  svg: 'image/svg+xml',
   pdf: 'application/pdf',
 }
 /** Refuse to stream absurdly large files (frame GIFs stay far below this). */
