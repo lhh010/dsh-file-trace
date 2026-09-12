@@ -354,7 +354,9 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
       const drawer = drawerRef.current
       if (drawer === null || target === null || !drawer.contains(target)) return
       e.preventDefault()
-      const inPane = target instanceof Element && target.closest('[data-file-trace-diff]') !== null
+      // The markdown reading pane is part of the pane font group too (its
+      // own md-pane attribute): Ctrl+wheel there scales the rendered document.
+      const inPane = target instanceof Element && target.closest('[data-file-trace-diff], [data-file-trace-md-pane]') !== null
       const step = e.deltaY < 0 ? 1 : -1
       const current = inPane ? paneFontRef.current : listFontRef.current
       const next = Math.min(Math.max(current + step, MIN_FONT), MAX_FONT)
