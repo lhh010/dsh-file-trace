@@ -68,13 +68,13 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.6` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`、`0.1.3-alpha.2` | 声明支持 0.1.3-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动全在 pi-ai/Web 顶栏/子代理消息/host 面，client 插件面零代码差异；typecheck/build/单测全绿） |
 | `v0.3.12`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | **Markdown 阅读窗格加入 Ctrl+滚轮字号缩放**：md 正文/代码块/表格/文件徽章字号接入面板字号变量（此前 md 正文硬编码 13.5px 不随缩放），Ctrl+滚轮在 md 窗格内正确归入面板字号组（此前误缩文件列表）；typecheck/105 单测/构建全绿，热挂载即时生效，无需重启宿主 |
 | `v0.3.11` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | 声明支持 0.1.5-rc.1~rc.2（npm 已发布，钉版本实机验证；rc.1 为 0.1.5 系列首个候选版本，client 插件面零代码差异；typecheck/build/105 单测全绿，热挂载实机验证） |
 | `v0.3.10` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-alpha.2` | 声明支持 0.1.5-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动为 Sidebar 文档预览、模型文件交付、minimal 默认工具调整与 `fs-ext` 安装修复，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
 | `v0.3.9` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-alpha.1` | 声明支持 0.1.5-alpha.1（npm 已发布，钉版本实机验证；0.1.5 改动在会话格式 V3 / ctx.agent 移除 / 宿主 bundle 服务路由 `/plugins/??`，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
 | `v0.3.8` | 与 v0.3.7 相同 | **SVG 渲染预览**：`.svg` 操作预览头部新增「渲染/原文」切换——渲染源三级链（host asset 路由磁盘原始字节 → 会话 payload 经 DOMParser 校验后的 blob → 沙箱 iframe 兜底，禁脚本、SMIL 动画照常）；markdown 阅读模式内嵌本地 `.svg` 从文件 chip 升级为真实渲染；payload XML 非法时显示明确错误提示而非无声裂图 |
 | `v0.3.7` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`、`0.1.3-alpha.2` | 修复：文档以 `---` 分界线开头且后方另有分界线时，标题与正文被误吞为 YAML frontmatter 渲染成代码块（client 渲染器修复，与 DSH 版本无关） |
+| `v0.3.6` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`、`0.1.3-alpha.2` | 声明支持 0.1.3-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动全在 pi-ai/Web 顶栏/子代理消息/host 面，client 插件面零代码差异；typecheck/build/单测全绿） |
 | `v0.3.4` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | **PDF 渲染预览**：`.pdf` 操作（读 / 写 / 编辑）预览头部可切换「渲染/原文」——文件字节经宿主 asset 路由流入显式 `application/pdf` Blob，浏览器原生 PDF 查看器内嵌打开；仅绝对路径可渲染（相对路径无法定位会话工作区） |
 | `v0.3.3` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | **HTML 渲染预览**：`.html`/`.htm`/`.xhtml` 操作预览头部可切换「渲染/原文」——沙箱 iframe（allow-scripts、禁同源）渲染（脱敏后）文档——动画/交互可运行但不透明源隔离；相对路径资源不解析（安全取舍，详见已知限制） |
 | `v0.3.2`| `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | 声明支持 0.1.3-alpha.1（npm 未发布，源码宿主实机验证；0.1.3 破坏性变更集中在 host/session 侧，client 插件面零代码差异；typecheck/build/96 单测全绿） |
