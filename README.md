@@ -68,7 +68,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.12`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | **Markdown 阅读窗格加入 Ctrl+滚轮字号缩放**：md 正文/代码块/表格/文件徽章字号接入面板字号变量（此前 md 正文硬编码 13.5px 不随缩放），Ctrl+滚轮在 md 窗格内正确归入面板字号组（此前误缩文件列表）；typecheck/105 单测/构建全绿，热挂载即时生效，无需重启宿主 |
+| `v0.3.13`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | 声明支持 dsh-v0.1.6-alpha.1（npm 已发布，钉版本实机验证；client 插件面零代码差异，typecheck/105 单测全绿，热挂载实机验证） |
+| `v0.3.12` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | **Markdown 阅读窗格加入 Ctrl+滚轮字号缩放**：md 正文/代码块/表格/文件徽章字号接入面板字号变量（此前 md 正文硬编码 13.5px 不随缩放），Ctrl+滚轮在 md 窗格内正确归入面板字号组（此前误缩文件列表）；typecheck/105 单测/构建全绿，热挂载即时生效，无需重启宿主 |
 | `v0.3.11` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | 声明支持 0.1.5-rc.1~rc.2（npm 已发布，钉版本实机验证；rc.1 为 0.1.5 系列首个候选版本，client 插件面零代码差异；typecheck/build/105 单测全绿，热挂载实机验证） |
 | `v0.3.10` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-alpha.2` | 声明支持 0.1.5-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动为 Sidebar 文档预览、模型文件交付、minimal 默认工具调整与 `fs-ext` 安装修复，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
 | `v0.3.9` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-alpha.1` | 声明支持 0.1.5-alpha.1（npm 已发布，钉版本实机验证；0.1.5 改动在会话格式 V3 / ctx.agent 移除 / 宿主 bundle 服务路由 `/plugins/??`，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
