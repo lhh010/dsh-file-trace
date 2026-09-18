@@ -59,6 +59,9 @@ importers:
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
+      katex:
+        specifier: ^0.16.47
+        version: 0.16.47
       lightningcss:
         specifier: ^1.32.0
         version: 1.33.0

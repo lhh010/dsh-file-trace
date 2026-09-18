@@ -48,6 +48,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 - **读取视图**：显示被读取文件的**真实内容与真实行号**（剥掉 DSH 读工具响应外壳）。
 - **Markdown 阅读模式 + Mermaid**：`.md / .markdown / .mdx` 文件的操作视图头部出现「阅读 / 原文」切换按钮（读取 / 写入 / 编辑三种操作均有）；阅读模式以 **Obsidian 风格**渲染完整文档——多级标题、表格（含对齐）、分割线、加粗/斜体/加粗斜体、删除线、高亮 `==`、行内代码、代码块、引用、有序/无序列表与任务清单、链接、`[[Wiki 链接]]`；图片按 URL 渲染，本地路径图片与非图片附件统一显示为带文件名的文件徽标；YAML frontmatter 显示为代码块。编辑操作优先用窗口内已知的前置内容重建变更后的完整文档。
 - **Mermaid 图渲染（懒加载 + 安全清洗 + 缩放）**：阅读模式下 ```mermaid 围栏按需从宿主 `/dsh-file-trace/resources` 懒加载 mermaid chunk（单文件打包）渲染成图；`securityLevel: strict` + `htmlLabels: false` 之上再经**零依赖 SVG 白名单清洗**（剥离 foreignObject/script/事件属性/全部链接）才注入 DOM；**点击图打开全屏缩放**（滚轮缩放/拖拽平移/±0 键盘/双击遮罩或 Esc 关闭）；加载失败或离线时自动回退为原样代码块。
+- **数学公式渲染（KaTeX，懒加载）**：阅读模式下 `$$...$$` 块公式与 `$...$` 行内公式按需从宿主 `/dsh-file-trace/resources` 懒加载 katex chunk（单文件打包，CSS 与全部字体 base64 内联，一次加载覆盖全文档）真正排版——上下标、分式、根号、希腊字母、\mathrm/\sqrt/\times/\quad 等均正常渲染；`throwOnError: false` 使单条公式语法错误只红字标注该条，不影响其余内容；chunk 加载失败或离线时自动回退为原文文本（v0.3.13 及以前的行为），只降级不崩溃。
 - **出错统一展示**：读取 / 写入 / 编辑**失败**的操作点开即显示结果里的真实错误文本（红色错误块），不再渲染伪造 diff。
 - **语法高亮**：按扩展名识别常见语言（C/C++、Java、C#、JS/TS（含 mjs/cjs/mts/cts）、Python、Go、Rust、cmd/batch、PowerShell、JSON/JSONC/JSON5/YAML/TOML/INI、SQL、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL、LaTeX/TeX（TeXstudio 风格初步渲染：命令/数学/注释/结构高亮）等），读取视图与 diff 行的**关键字 / 字符串 / 数字 / 类型 / 函数 / 注释 / 预处理指令**分别着色；修改行的行内变更底色与着色叠加。
 - **写入视图**：新文件写入显示为**全量新增（每行绿色 +）**；覆盖修改时按真实差异做 del/add。
@@ -68,7 +69,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.13`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | 声明支持 dsh-v0.1.6-alpha.1（npm 已发布，钉版本实机验证；client 插件面零代码差异，typecheck/105 单测全绿，热挂载实机验证） |
+| `v0.3.14`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | **数学公式渲染**：Markdown 阅读模式 `$$`/`$` 公式经懒加载 katex chunk（单文件，字体 base64 内联）真正排版，失败回退原文；typecheck/105 单测/构建全绿，chunk 路由实机 200 验证；宿主重启后新 client 生效 |
+| `v0.3.13` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | 声明支持 dsh-v0.1.6-alpha.1（npm 已发布，钉版本实机验证；client 插件面零代码差异，typecheck/105 单测全绿，热挂载实机验证） |
 | `v0.3.12` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | **Markdown 阅读窗格加入 Ctrl+滚轮字号缩放**：md 正文/代码块/表格/文件徽章字号接入面板字号变量（此前 md 正文硬编码 13.5px 不随缩放），Ctrl+滚轮在 md 窗格内正确归入面板字号组（此前误缩文件列表）；typecheck/105 单测/构建全绿，热挂载即时生效，无需重启宿主 |
 | `v0.3.11` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | 声明支持 0.1.5-rc.1~rc.2（npm 已发布，钉版本实机验证；rc.1 为 0.1.5 系列首个候选版本，client 插件面零代码差异；typecheck/build/105 单测全绿，热挂载实机验证） |
 | `v0.3.10` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-alpha.2` | 声明支持 0.1.5-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动为 Sidebar 文档预览、模型文件交付、minimal 默认工具调整与 `fs-ext` 安装修复，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |

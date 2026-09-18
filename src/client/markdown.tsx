@@ -30,6 +30,49 @@ function loadMermaidChunk(): Promise<{ renderMermaid: (code: string) => Promise<
   chunkPromise = (chunkPromise ?? import(MERMAID_CHUNK_URL)) as Promise<{ renderMermaid: (code: string) => Promise<string> }>
   return chunkPromise
 }
+
+/** Host route serving the lazily-loaded katex chunk. Imported only when a
+ *  math block or inline math is rendered. */
+const KATEX_CHUNK_URL = '/dsh-file-trace/resources/katex-chunk.js'
+let katexPromise: Promise<{ renderMath: (tex: string, displayMode: boolean) => string }> | undefined
+function loadKatexChunk(): Promise<{ renderMath: (tex: string, displayMode: boolean) => string }> {
+  // A failed import is NOT cached (transient offline/reload retries); a
+  // success is cached — one load covers every formula in the document.
+  katexPromise = (katexPromise ?? import(KATEX_CHUNK_URL)) as Promise<{ renderMath: (tex: string, displayMode: boolean) => string }>
+  return katexPromise
+}
+
+/** One LaTeX expression, rendered by the lazy katex chunk; until the chunk
+ *  resolves (and permanently if it fails to load) the raw source shows in the
+ *  pre-0.3.14 styled span, so a missing chunk degrades, never breaks. */
+function InlineMath({ tex }: { readonly tex: string }): ReactElement {
+  const [html, setHtml] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadKatexChunk()
+      .then((mod) => { if (alive) setHtml(mod.renderMath(tex, false)) })
+      .catch((cause) => { console.warn('[dsh-file-trace] katex chunk fell back to raw text:', cause) })
+    return () => { alive = false }
+  }, [tex])
+  if (html === null) return <span className={css.mdMath}>{tex}</span>
+  return <span className={css.mdMath} data-katex-state="rendered" dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+/** One display-math block ($$...$$), rendered by the lazy katex chunk with
+ *  the same raw-text fallback as InlineMath. */
+function MathBlock({ tex }: { readonly tex: string }): ReactElement {
+  const [html, setHtml] = useState<string | null>(null)
+  useEffect(() => {
+    let alive = true
+    loadKatexChunk()
+      .then((mod) => { if (alive) setHtml(mod.renderMath(tex, true)) })
+      .catch((cause) => { console.warn('[dsh-file-trace] katex chunk fell back to raw text:', cause) })
+    return () => { alive = false }
+  }, [tex])
+  if (html === null) return <div className={css.mdMathBlock}>{tex}</div>
+  return <div className={css.mdMathBlock} data-katex-state="rendered" dangerouslySetInnerHTML={{ __html: html }} />
+}
+
 /** Render one mermaid fence lazily; on any failure fall back to the code block. */
 /** Zoom/pan modal for one rendered diagram (click the diagram to open):
  *  wheel zoom anchored at the cursor, drag to pan, +/-/0 keyboard, Esc or ×
@@ -516,7 +559,7 @@ export function renderInline(text: string, keyBase = 'i', rctx: Rctx = {}): read
       const m = rest.match(/^\$(?!\s)([^$\n]*[^\s$])\$/)
       if (m !== null) {
         flush()
-        nodes.push(<span key={key()} className={css.mdMath}>{m[1]}</span>)
+        nodes.push(<InlineMath key={key()} tex={m[1]!} />)
         pos += m[0].length
         continue
       }
@@ -660,7 +703,7 @@ function renderBlock(b: Block, key: string, rctx: Rctx): ReactElement {
     case 'frontmatter':
       return <pre key={key} className={css.mdPre} data-lang="yaml"><code>{b.text}</code></pre>
     case 'math':
-      return <div key={key} className={css.mdMathBlock}>{b.text}</div>
+      return <MathBlock key={key} tex={b.text} />
     case 'hr':
       return <hr key={key} className={css.mdHr} />
     case 'quote':
