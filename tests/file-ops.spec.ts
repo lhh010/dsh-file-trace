@@ -52,6 +52,18 @@ describe('extractFileOps', () => {
     expect(ops[0]!.path).toBe('a.ts')
   })
 
+  it('expands present-tool calls into one write op per file', () => {
+    const ops = extractFileOps([
+      result('p1', 'present', { files: [{ path: 'docs/report.md', description: 'd1' }, { path: 'out/chart.png', description: 'd2' }] }, 7),
+      result('p2', 'present', { files: 'not-an-array' }, 8),
+      result('p3', 'present', { files: [{ description: 'no-path' }] }, 9),
+    ], [])
+    expect(ops).toHaveLength(2)
+    expect(ops.every(op => op.kind === 'write')).toBe(true)
+    expect(new Set(ops.map(op => op.path))).toEqual(new Set(['docs/report.md', 'out/chart.png']))
+    expect(ops.every(op => op.callId === 'p1')).toBe(true)
+  })
+
   it('carries error and running flags', () => {
     const ops = extractFileOps([result('e', 'write', { file_path: 'a', content: 'z' }, 5, true)], [])
     expect(ops[0]!.isError).toBe(true)

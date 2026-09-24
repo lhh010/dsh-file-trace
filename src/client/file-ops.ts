@@ -51,7 +51,7 @@ export interface FileOp {
 
 /** Tool names mapped to each op kind; unknown names are ignored. */
 const READ_TOOLS = new Set(['read', 'view', 'see'])
-const WRITE_TOOLS = new Set(['write', 'create'])
+const WRITE_TOOLS = new Set(['write', 'create', 'present'])
 const EDIT_TOOLS = new Set(['edit', 'str_replace', 'str-replace-editor', 'multi-edit'])
 
 /** Classify one tool name; undefined when the tool touches no file. */
@@ -94,6 +94,19 @@ function joinText(content: ReadonlyArray<object>): string {
       return typeof text === 'string' ? text : ''
     })
     .join('')
+}
+
+/** Expand one present-tool call into per-file write ops (its files[] array carries the paths). */
+function presentOpsOf(args: Record<string, unknown>, base: Omit<FileOp, 'path'>): FileOp[] {
+  const files: unknown = args.files
+  if (!Array.isArray(files)) return []
+  const out: FileOp[] = []
+  for (const entry of files) {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) continue
+    const p = (entry as Record<string, unknown>).path
+    if (typeof p === 'string' && p.length > 0) out.push({ ...base, path: p })
+  }
+  return out
 }
 
 /** Extract one settled tool-result node when it touches a file. */
@@ -193,6 +206,19 @@ export function extractFileOps(
 /** Recursively collect file operations from a block list (parent or descendant). */
 function collectFromBlocks(blocks: readonly (RunningToolCall | ToolResultNode)[], out: FileOp[]): void {
   for (const block of blocks) {
+    if ('call' in block && block.call !== null && block.call.name === 'present') {
+      const args = parseArgs(block.call.argsRaw)
+      const base = {
+        callId: block.callId,
+        kind: 'write' as const,
+        time: block.callTime ?? block.time,
+        running: false,
+        isError: block.isError,
+      }
+      for (const op of presentOpsOf(args, base)) out.push(op)
+      if (block.subCalls.length > 0) collectFromBlocks(block.subCalls, out)
+      continue
+    }
     const op = 'call' in block ? opOfResult(block) : opOfRunning(block)
     if (op !== undefined) out.push(op)
     if (block.subCalls.length > 0) collectFromBlocks(block.subCalls, out)

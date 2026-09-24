@@ -79,7 +79,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.16`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-alpha.2`、`0.1.7-rc.1` | 声明支持 dsh-v0.1.7-rc.1（舰队扫检零错误零崩溃，零适配改动） |
+| `v0.3.17`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **修复 present 工具调用无记录**：0.1.7 起「Write polished document / Present submission」类交付（present 工具，files[] 多文件参数）不在文件追踪白名单，操作被静默忽略；现按 files[].path 逐文件展开为写入记录（含多文件交付与非法参数容错）；typecheck/113 单测/构建全绿 |
+| `v0.3.16` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-alpha.2`、`0.1.7-rc.1` | 声明支持 dsh-v0.1.7-rc.1（舰队扫检零错误零崩溃，零适配改动） |
 | `v0.3.15` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2` | **新增 DSH 版本门控更新提示**（舰队统一功能）；声明支持 dsh-v0.1.7-alpha.2；typecheck/112 单测/构建全绿，舰队扫检零错误 |
 | `v0.3.14` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | **数学公式渲染**：Markdown 阅读模式 `$$`/`$` 公式经懒加载 katex chunk（单文件，字体 base64 内联）真正排版，失败回退原文；typecheck/105 单测/构建全绿，chunk 路由实机 200 验证；宿主重启后新 client 生效 |
 | `v0.3.13` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | 声明支持 dsh-v0.1.6-alpha.1（npm 已发布，钉版本实机验证；client 插件面零代码差异，typecheck/105 单测全绿，热挂载实机验证） |
