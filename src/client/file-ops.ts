@@ -47,6 +47,8 @@ export interface FileOp {
   readonly readStitched?: string
   /** Number of segments stitched into this op. */
   readonly partialSegments?: number
+  /** Present-tool delivery: path declared without inline content (the file was written by code). */
+  readonly presentOnly?: boolean
 }
 
 /** Tool names mapped to each op kind; unknown names are ignored. */
@@ -104,7 +106,7 @@ function presentOpsOf(args: Record<string, unknown>, base: Omit<FileOp, 'path'>)
   for (const entry of files) {
     if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) continue
     const p = (entry as Record<string, unknown>).path
-    if (typeof p === 'string' && p.length > 0) out.push({ ...base, path: p })
+    if (typeof p === 'string' && p.length > 0) out.push({ ...base, path: p, presentOnly: true })
   }
   return out
 }

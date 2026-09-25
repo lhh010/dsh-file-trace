@@ -242,6 +242,37 @@ function diffOf(op: FileOp, prior: string | undefined): readonly DiffRow[] {
   return []
 }
 
+/** Present-tool delivery pane: the op records no inline content (the file was written by code), so read the current on-disk bytes through the host asset route and render them. */
+function PresentedPane({ path, t }: { readonly path: string; readonly t: (key: FileTraceKey) => string }): ReactElement {
+  const [state, setState] = useState<{ kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; text: string }>({ kind: 'loading' })
+  useEffect(() => {
+    const controller = new AbortController()
+    setState({ kind: 'loading' })
+    fetch(assetUrl(path), { signal: controller.signal })
+      .then(async (response): Promise<void> => {
+        if (!response.ok) throw new Error(String(response.status))
+        setState({ kind: 'ok', text: await response.text() })
+      })
+      .catch(() => { if (!controller.signal.aborted) setState({ kind: 'error' }) })
+    return () => { controller.abort() }
+  }, [path])
+  if (state.kind === 'loading') return <div className={css.mdPane} data-file-trace-present-loading>{t('present.loading')}</div>
+  if (state.kind === 'error') return <div className={css.mdPane} data-file-trace-present-error role="alert">{t('present.missing')}</div>
+  if (isMarkdownPath(path)) {
+    return <div className={css.readContent} data-file-trace-present><MarkdownView src={state.text} baseDir={path} /></div>
+  }
+  return (
+    <div className={css.readContent} data-file-trace-present>
+      {state.text.split('\n').map((line, index) => (
+        <div key={String(index)} className={css.readRow}>
+          <span className={css.lineNo}>{String(index + 1)}</span>
+          <span className={css.text}>{line}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** The header trigger button plus its drawer. */
 export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
   const rawOps = useConversation((conversation: ConversationSnapshot) => {
@@ -1047,6 +1078,10 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                         srcDoc={readingSrc}
                       />
                     </div>
+                  )
+                  : selected.op.presentOnly === true
+                  ? (
+                    <PresentedPane path={selected.path} t={t} />
                   )
                   : selected.op.kind === 'read'
                   ? (

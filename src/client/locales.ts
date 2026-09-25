@@ -17,6 +17,8 @@ export type FileTraceKey =
   | 'diff.add'
   | 'diff.mod'
   | 'diff.priorUnknown'
+  | 'present.loading'
+  | 'present.missing'
   | 'diff.fold'
   | 'md.read'
   | 'html.render'
@@ -62,6 +64,8 @@ export const zh: Record<FileTraceKey, string> = {
   'diff.add': '新增',
   'diff.mod': '修改',
   'diff.priorUnknown': '（变更前的内容不在当前窗口，显示为全新增）',
+    'present.loading': '正在读取交付文件当前内容…',
+    'present.missing': '无法读取该文件（可能已被移动或删除）。',
   'diff.fold': '{count} 行…点击展开',
   'md.read': '阅读',
   'html.render': '渲染',
@@ -108,6 +112,8 @@ export const en: Record<FileTraceKey, string> = {
   'diff.add': 'added',
   'diff.mod': 'modified',
   'diff.priorUnknown': '(prior content outside the loaded window; shown all-added)',
+    'present.loading': 'Loading the delivered file…',
+    'present.missing': 'Cannot read the file (moved or deleted).',
   'diff.fold': '{count} lines…click to expand',
   'md.read': 'Reading',
   'html.render': 'Render',

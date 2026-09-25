@@ -28,6 +28,12 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   ico: 'image/x-icon',
   svg: 'image/svg+xml',
   pdf: 'application/pdf',
+  md: 'text/markdown; charset=utf-8',
+  markdown: 'text/markdown; charset=utf-8',
+  txt: 'text/plain; charset=utf-8',
+  json: 'application/json; charset=utf-8',
+  csv: 'text/csv; charset=utf-8',
+  log: 'text/plain; charset=utf-8',
 }
 /** Refuse to stream absurdly large files (frame GIFs stay far below this). */
 const MAX_BYTES = 64 * 1024 * 1024
