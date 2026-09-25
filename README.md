@@ -79,7 +79,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.19`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **修复交付文件路径解析**：present 交付的相对路径此前按宿主进程 CWD 解析（读到不存在的位置报「无法读取该文件」）；现 asset 路由支持 `?session=` 参数按会话工作区解析（客户端经 uiSession.current 同步主视图会话 id，与官方侧边栏同一解析基准）；typecheck/113 单测/构建全绿 |
+| `v0.3.19`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **修复交付文件路径解析**：present 交付的相对路径此前按宿主进程 CWD 解析（报「无法读取该文件」）；现 asset 路由支持 `?session=` 参数经 `sessions.get(id).header.cwd` 按会话工作区解析（与官方侧边栏同一基准；客户端经 uiSession.current 同步主视图会话 id；初版误用 `sessions.scope` 已修正——scope 返回 AgentContext 不含 header）；实机验证交付文档完整渲染；typecheck/113 单测/构建全绿 |
 | `v0.3.18` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **交付文件内容直显**：present 类交付（代码写入、无内联内容的文件）不再显示「变更前的内容不在当前窗口，显示为全新增」——改为经宿主 asset 路由读取当前盘上内容完整渲染（.md 走 Markdown 阅读模式含图片/公式/代码高亮，其它文本带行号）；asset 路由新增 md/markdown/txt/json/csv/log 文本类型。typecheck/113 单测/构建全绿 |
 | `v0.3.17` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **修复 present 工具调用无记录**：0.1.7 起「Write polished document / Present submission」类交付（present 工具，files[] 多文件参数）不在文件追踪白名单，操作被静默忽略；现按 files[].path 逐文件展开为写入记录（含多文件交付与非法参数容错）；typecheck/113 单测/构建全绿 |
 | `v0.3.16` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-alpha.2`、`0.1.7-rc.1` | 声明支持 dsh-v0.1.7-rc.1（舰队扫检零错误零崩溃，零适配改动） |
