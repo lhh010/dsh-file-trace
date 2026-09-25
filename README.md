@@ -79,35 +79,35 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.19`（默认） | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **修复交付文件路径解析**：present 交付的相对路径此前按宿主进程 CWD 解析（报「无法读取该文件」）；现 asset 路由支持 `?session=` 参数经 `sessions.get(id).header.cwd` 按会话工作区解析（与官方侧边栏同一基准；客户端经 uiSession.current 同步主视图会话 id；初版误用 `sessions.scope` 已修正——scope 返回 AgentContext 不含 header）；实机验证交付文档完整渲染；typecheck/113 单测/构建全绿 |
-| `v0.3.18` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **交付文件内容直显**：present 类交付（代码写入、无内联内容的文件）不再显示「变更前的内容不在当前窗口，显示为全新增」——改为经宿主 asset 路由读取当前盘上内容完整渲染（.md 走 Markdown 阅读模式含图片/公式/代码高亮，其它文本带行号）；asset 路由新增 md/markdown/txt/json/csv/log 文本类型。typecheck/113 单测/构建全绿 |
-| `v0.3.17` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-rc.1` | **修复 present 工具调用无记录**：0.1.7 起「Write polished document / Present submission」类交付（present 工具，files[] 多文件参数）不在文件追踪白名单，操作被静默忽略；现按 files[].path 逐文件展开为写入记录（含多文件交付与非法参数容错）；typecheck/113 单测/构建全绿 |
-| `v0.3.16` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.7-alpha.2`、`0.1.7-rc.1` | 声明支持 dsh-v0.1.7-rc.1（舰队扫检零错误零崩溃，零适配改动） |
-| `v0.3.15` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2` | **新增 DSH 版本门控更新提示**（舰队统一功能）；声明支持 dsh-v0.1.7-alpha.2；typecheck/112 单测/构建全绿，舰队扫检零错误 |
-| `v0.3.14` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | **数学公式渲染**：Markdown 阅读模式 `$$`/`$` 公式经懒加载 katex chunk（单文件，字体 base64 内联）真正排版，失败回退原文；typecheck/105 单测/构建全绿，chunk 路由实机 200 验证；宿主重启后新 client 生效 |
-| `v0.3.13` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.6-alpha.1` | 声明支持 dsh-v0.1.6-alpha.1（npm 已发布，钉版本实机验证；client 插件面零代码差异，typecheck/105 单测全绿，热挂载实机验证） |
-| `v0.3.12` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | **Markdown 阅读窗格加入 Ctrl+滚轮字号缩放**：md 正文/代码块/表格/文件徽章字号接入面板字号变量（此前 md 正文硬编码 13.5px 不随缩放），Ctrl+滚轮在 md 窗格内正确归入面板字号组（此前误缩文件列表）；typecheck/105 单测/构建全绿，热挂载即时生效，无需重启宿主 |
-| `v0.3.11` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-rc.2` | 声明支持 0.1.5-rc.1~rc.2（npm 已发布，钉版本实机验证；rc.1 为 0.1.5 系列首个候选版本，client 插件面零代码差异；typecheck/build/105 单测全绿，热挂载实机验证） |
-| `v0.3.10` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-alpha.2` | 声明支持 0.1.5-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动为 Sidebar 文档预览、模型文件交付、minimal 默认工具调整与 `fs-ext` 安装修复，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
-| `v0.3.9` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`~`0.1.5-alpha.1` | 声明支持 0.1.5-alpha.1（npm 已发布，钉版本实机验证；0.1.5 改动在会话格式 V3 / ctx.agent 移除 / 宿主 bundle 服务路由 `/plugins/??`，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
+| `v0.3.19`（默认） | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1` | **修复交付文件路径解析**：present 交付的相对路径此前按宿主进程 CWD 解析（报「无法读取该文件」）；现 asset 路由支持 `?session=` 参数经 `sessions.get(id).header.cwd` 按会话工作区解析（与官方侧边栏同一基准；客户端经 uiSession.current 同步主视图会话 id；初版误用 `sessions.scope` 已修正——scope 返回 AgentContext 不含 header）；实机验证交付文档完整渲染；typecheck/113 单测/构建全绿 |
+| `v0.3.18` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1` | **交付文件内容直显**：present 类交付（代码写入、无内联内容的文件）不再显示「变更前的内容不在当前窗口，显示为全新增」——改为经宿主 asset 路由读取当前盘上内容完整渲染（.md 走 Markdown 阅读模式含图片/公式/代码高亮，其它文本带行号）；asset 路由新增 md/markdown/txt/json/csv/log 文本类型。typecheck/113 单测/构建全绿 |
+| `v0.3.17` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1` | **修复 present 工具调用无记录**：0.1.7 起「Write polished document / Present submission」类交付（present 工具，files[] 多文件参数）不在文件追踪白名单，操作被静默忽略；现按 files[].path 逐文件展开为写入记录（含多文件交付与非法参数容错）；typecheck/113 单测/构建全绿 |
+| `v0.3.16` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-alpha.2`、`0.1.7-rc.1` | 声明支持 dsh-v0.1.7-rc.1（舰队扫检零错误零崩溃，零适配改动） |
+| `v0.3.15` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2` | **新增 DSH 版本门控更新提示**（舰队统一功能）；声明支持 dsh-v0.1.7-alpha.2；typecheck/112 单测/构建全绿，舰队扫检零错误 |
+| `v0.3.14` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.6-alpha.1` | **数学公式渲染**：Markdown 阅读模式 `$$`/`$` 公式经懒加载 katex chunk（单文件，字体 base64 内联）真正排版，失败回退原文；typecheck/105 单测/构建全绿，chunk 路由实机 200 验证；宿主重启后新 client 生效 |
+| `v0.3.13` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.6-alpha.1` | 声明支持 dsh-v0.1.6-alpha.1（npm 已发布，钉版本实机验证；client 插件面零代码差异，typecheck/105 单测全绿，热挂载实机验证） |
+| `v0.3.12` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.5-rc.2` | **Markdown 阅读窗格加入 Ctrl+滚轮字号缩放**：md 正文/代码块/表格/文件徽章字号接入面板字号变量（此前 md 正文硬编码 13.5px 不随缩放），Ctrl+滚轮在 md 窗格内正确归入面板字号组（此前误缩文件列表）；typecheck/105 单测/构建全绿，热挂载即时生效，无需重启宿主 |
+| `v0.3.11` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.5-rc.2` | 声明支持 0.1.5-rc.1~rc.2（npm 已发布，钉版本实机验证；rc.1 为 0.1.5 系列首个候选版本，client 插件面零代码差异；typecheck/build/105 单测全绿，热挂载实机验证） |
+| `v0.3.10` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.5-alpha.2` | 声明支持 0.1.5-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动为 Sidebar 文档预览、模型文件交付、minimal 默认工具调整与 `fs-ext` 安装修复，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
+| `v0.3.9` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.5-alpha.1` | 声明支持 0.1.5-alpha.1（npm 已发布，钉版本实机验证；0.1.5 改动在会话格式 V3 / ctx.agent 移除 / 宿主 bundle 服务路由 `/plugins/??`，client 插件面零代码差异；typecheck/build/105 单测全绿，启动清单确认加载） |
 | `v0.3.8` | 与 v0.3.7 相同 | **SVG 渲染预览**：`.svg` 操作预览头部新增「渲染/原文」切换——渲染源三级链（host asset 路由磁盘原始字节 → 会话 payload 经 DOMParser 校验后的 blob → 沙箱 iframe 兜底，禁脚本、SMIL 动画照常）；markdown 阅读模式内嵌本地 `.svg` 从文件 chip 升级为真实渲染；payload XML 非法时显示明确错误提示而非无声裂图 |
-| `v0.3.7` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`、`0.1.3-alpha.2` | 修复：文档以 `---` 分界线开头且后方另有分界线时，标题与正文被误吞为 YAML frontmatter 渲染成代码块（client 渲染器修复，与 DSH 版本无关） |
-| `v0.3.6` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1`、`0.1.3-alpha.2` | 声明支持 0.1.3-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动全在 pi-ai/Web 顶栏/子代理消息/host 面，client 插件面零代码差异；typecheck/build/单测全绿） |
-| `v0.3.4` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | **PDF 渲染预览**：`.pdf` 操作（读 / 写 / 编辑）预览头部可切换「渲染/原文」——文件字节经宿主 asset 路由流入显式 `application/pdf` Blob，浏览器原生 PDF 查看器内嵌打开；仅绝对路径可渲染（相对路径无法定位会话工作区） |
-| `v0.3.3` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | **HTML 渲染预览**：`.html`/`.htm`/`.xhtml` 操作预览头部可切换「渲染/原文」——沙箱 iframe（allow-scripts、禁同源）渲染（脱敏后）文档——动画/交互可运行但不透明源隔离；相对路径资源不解析（安全取舍，详见已知限制） |
-| `v0.3.2`| `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1`、`0.1.3-alpha.1` | 声明支持 0.1.3-alpha.1（npm 未发布，源码宿主实机验证；0.1.3 破坏性变更集中在 host/session 侧，client 插件面零代码差异；typecheck/build/96 单测全绿） |
-| `v0.3.1` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | 文档更新：明确脱敏层定位——展示层便利（截图 / 分享场景），非安全边界，会话日志保留原始内容 |
-| `v0.3.0` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | **敏感内容脱敏层**：敏感路径整文件遮罩（`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/私钥等）+ 普通文件按内容形态遮罩（`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM 头等），diff/阅读视图/Markdown 模式/错误文本统一生效；默认开启，面板工具栏一键开关（localStorage 记忆）；仅影响显示，不改会话日志 |
-| `v0.2.9` | `dsh-v0.1.2-alpha.1`~`alpha.5`、`rc.1` | 声明支持 rc.1（alpha.5→rc.1 为纯版本号提交，零代码差异；实机 rc.1 验证通过） |
-| `v0.2.8` | `dsh-v0.1.2-alpha.1`~`alpha.5` | LaTeX/TeX 语法高亮（TeXstudio 风格初步渲染：命令→macro、数学→string、注释→灰、{}&^_#→structure、200+ 关键字） |
-| `v0.2.7` | `dsh-v0.1.2-alpha.1`~`alpha.5` | 声明支持 alpha.5（typecheck/build 全绿；alpha.5 为纯 bug 修复，无 API 变更） |
-| `v0.2.6` | `dsh-v0.1.2-alpha.1`~`alpha.4` | 声明支持 alpha.4（typecheck/build/79 单测全绿） |
-| `v0.2.5` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 更新提示词补「按 DSH 版本选 tag」路由说明与排查指引 |
-| `v0.2.4` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 渲染安全加固（htmlLabels:false + SVG 白名单清洗）+ 点击全屏缩放/拖拽 |
-| `v0.2.3` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Mermaid 懒加载渲染（失败回退代码块）；新增宿主 chunk 资源路由 |
-| `v0.2.2` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 高亮扩充（mjs/cjs/mts/cts、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL、JSONC/JSON5）+ Ctrl+滚轮分区调字号（9–28px，边界提示） |
-| `v0.2.0` | `dsh-v0.1.2-alpha.1`~`alpha.3` | Markdown 阅读模式（Obsidian 风格渲染，读/写/编辑均可切换） |
-| `v0.1.8` | `dsh-v0.1.2-alpha.1`~`alpha.3` | 更新端点鉴权（x-dsh-plugin-update 头 + 同源校验）与 hostChanged 检测 |
+| `v0.3.7` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1`、`0.1.3-alpha.2` | 修复：文档以 `---` 分界线开头且后方另有分界线时，标题与正文被误吞为 YAML frontmatter 渲染成代码块（client 渲染器修复，与 DSH 版本无关） |
+| `v0.3.6` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1`、`0.1.3-alpha.2` | 声明支持 0.1.3-alpha.2（npm 已发布，钉版本实机验证；alpha.2 改动全在 pi-ai/Web 顶栏/子代理消息/host 面，client 插件面零代码差异；typecheck/build/单测全绿） |
+| `v0.3.4` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1` | **PDF 渲染预览**：`.pdf` 操作（读 / 写 / 编辑）预览头部可切换「渲染/原文」——文件字节经宿主 asset 路由流入显式 `application/pdf` Blob，浏览器原生 PDF 查看器内嵌打开；仅绝对路径可渲染（相对路径无法定位会话工作区） |
+| `v0.3.3` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1` | **HTML 渲染预览**：`.html`/`.htm`/`.xhtml` 操作预览头部可切换「渲染/原文」——沙箱 iframe（allow-scripts、禁同源）渲染（脱敏后）文档——动画/交互可运行但不透明源隔离；相对路径资源不解析（安全取舍，详见已知限制） |
+| `v0.3.2`| `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1` | 声明支持 0.1.3-alpha.1（npm 未发布，源码宿主实机验证；0.1.3 破坏性变更集中在 host/session 侧，client 插件面零代码差异；typecheck/build/96 单测全绿） |
+| `v0.3.1` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1` | 文档更新：明确脱敏层定位——展示层便利（截图 / 分享场景），非安全边界，会话日志保留原始内容 |
+| `v0.3.0` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1` | **敏感内容脱敏层**：敏感路径整文件遮罩（`.env`/`*secret*`/`*credential*`/`*token*`/`*api-key*`/私钥等）+ 普通文件按内容形态遮罩（`api_key:`/`Bearer `/`sk-`/`AKIA`/`ghp_`/PEM 头等），diff/阅读视图/Markdown 模式/错误文本统一生效；默认开启，面板工具栏一键开关（localStorage 记忆）；仅影响显示，不改会话日志 |
+| `v0.2.9` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1` | 声明支持 rc.1（alpha.5→rc.1 为纯版本号提交，零代码差异；实机 rc.1 验证通过） |
+| `v0.2.8` | `dsh-v0.1.2-alpha.1 ~ alpha.5` | LaTeX/TeX 语法高亮（TeXstudio 风格初步渲染：命令→macro、数学→string、注释→灰、{}&^_#→structure、200+ 关键字） |
+| `v0.2.7` | `dsh-v0.1.2-alpha.1 ~ alpha.5` | 声明支持 alpha.5（typecheck/build 全绿；alpha.5 为纯 bug 修复，无 API 变更） |
+| `v0.2.6` | `dsh-v0.1.2-alpha.1 ~ alpha.4` | 声明支持 alpha.4（typecheck/build/79 单测全绿） |
+| `v0.2.5` | `dsh-v0.1.2-alpha.1 ~ alpha.3` | 更新提示词补「按 DSH 版本选 tag」路由说明与排查指引 |
+| `v0.2.4` | `dsh-v0.1.2-alpha.1 ~ alpha.3` | Mermaid 渲染安全加固（htmlLabels:false + SVG 白名单清洗）+ 点击全屏缩放/拖拽 |
+| `v0.2.3` | `dsh-v0.1.2-alpha.1 ~ alpha.3` | Mermaid 懒加载渲染（失败回退代码块）；新增宿主 chunk 资源路由 |
+| `v0.2.2` | `dsh-v0.1.2-alpha.1 ~ alpha.3` | 高亮扩充（mjs/cjs/mts/cts、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL、JSONC/JSON5）+ Ctrl+滚轮分区调字号（9–28px，边界提示） |
+| `v0.2.0` | `dsh-v0.1.2-alpha.1 ~ alpha.3` | Markdown 阅读模式（Obsidian 风格渲染，读/写/编辑均可切换） |
+| `v0.1.8` | `dsh-v0.1.2-alpha.1 ~ alpha.3` | 更新端点鉴权（x-dsh-plugin-update 头 + 同源校验）与 hostChanged 检测 |
 | `v0.1.7` | `dsh-v0.1.2-alpha.1` | 语法高亮（含跨行块注释）；出错统一展示真实错误文本；折叠展开对齐修复；版本号随 tag | 
 | `v0.1.6` | `dsh-v0.1.2-alpha.1` | 版本检查走宿主同源端点；滚动位置记忆 | 
 | `v0.1.4` | `dsh-v0.1.2-alpha.1` | 自动版本检查 + 点击更新 |
