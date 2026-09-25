@@ -250,24 +250,24 @@ function diffOf(op: FileOp, prior: string | undefined): readonly DiffRow[] {
   return []
 }
 
-/** Present-tool delivery pane: the op records no inline content (the file was written by code), so read the current on-disk bytes through the host asset route and render them. */
-function PresentedPane({ path, t }: { readonly path: string; readonly t: (key: FileTraceKey) => string }): ReactElement {
+/** Present-tool delivery pane: the op records no inline content (the file was written by code), so read the current on-disk bytes through the host asset route and render them. The owning session id arrives as the session-scope slot prop (authoritative for resolving the workspace-relative path); the module store synced from uiSession stays only as a fallback for hosts without the prop. */
+function PresentedPane({ path, sessionId: sessionProp, t }: { readonly path: string; readonly sessionId?: string; readonly t: (key: FileTraceKey) => string }): ReactElement {
   const [state, setState] = useState<{ kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; text: string }>({ kind: 'loading' })
   useEffect(() => {
     const controller = new AbortController()
     setState({ kind: 'loading' })
-    const sessionId = currentSessionIdStore.value
-      const url = /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith('/') || path.startsWith('\\\\')
-        ? assetUrl(path)
-        : sessionId === '' ? assetUrl(path) : `${assetUrl(path)}&session=${encodeURIComponent(sessionId)}`
-      fetch(url, { signal: controller.signal })
+    const sessionId = sessionProp !== undefined && sessionProp !== '' ? sessionProp : currentSessionIdStore.value
+    const url = /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith('/') || path.startsWith('\\\\')
+      ? assetUrl(path)
+      : sessionId === '' ? assetUrl(path) : `${assetUrl(path)}&session=${encodeURIComponent(sessionId)}`
+    fetch(url, { signal: controller.signal })
       .then(async (response): Promise<void> => {
         if (!response.ok) throw new Error(String(response.status))
         setState({ kind: 'ok', text: await response.text() })
       })
       .catch(() => { if (!controller.signal.aborted) setState({ kind: 'error' }) })
     return () => { controller.abort() }
-  }, [path])
+  }, [path, sessionProp])
   if (state.kind === 'loading') return <div className={css.mdPane} data-file-trace-present-loading>{t('present.loading')}</div>
   if (state.kind === 'error') return <div className={css.mdPane} data-file-trace-present-error role="alert">{t('present.missing')}</div>
   if (isMarkdownPath(path)) {
@@ -286,7 +286,7 @@ function PresentedPane({ path, t }: { readonly path: string; readonly t: (key: F
 }
 
 /** The header trigger button plus its drawer. */
-export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
+export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButtonProps) {
   const rawOps = useConversation((conversation: ConversationSnapshot) => {
     const chat = conversation.views.get('chat')
     return extractFileOps(chat?.legacy.nodes ?? [], chat?.legacy.runningCalls ?? [])
@@ -1093,7 +1093,7 @@ export function FileTraceButton({ useConversation, t }: FileTraceButtonProps) {
                   )
                   : selected.op.presentOnly === true
                   ? (
-                    <PresentedPane path={selected.path} t={t} />
+                    <PresentedPane path={selected.path} sessionId={sessionId} t={t} />
                   )
                   : selected.op.kind === 'read'
                   ? (
