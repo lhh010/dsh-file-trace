@@ -20,9 +20,10 @@ const ASSET_PATH = '/dsh-file-trace/asset'
 /** The workspace directory of one session (present deliveries resolve against it). */
 function sessionWorkspace(ctx: Context, sessionId: string): string | undefined {
   try {
-    const scope = ctx.sessions.scope(sessionId as Parameters<typeof ctx.sessions.scope>[0])
-    if (scope === undefined) return undefined
-    const cwd = (scope as unknown as { header?: { cwd?: unknown } }).header?.cwd
+    const sessions = ctx.sessions as unknown as { get(id: string): { header?: { cwd?: unknown } } | undefined }
+    const session = sessions.get(sessionId)
+    if (session === undefined) return undefined
+    const cwd = (session as unknown as { header?: { cwd?: unknown } }).header?.cwd
     return typeof cwd === 'string' && cwd !== '' ? cwd : undefined
   } catch {
     return undefined
