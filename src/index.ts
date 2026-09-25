@@ -12,7 +12,7 @@ import { registerChunkRoute } from './chunk-route.ts'
 export const name = '@dsh-external/dsh-file-trace'
 
 /** The web server is required before the update endpoint can register. */
-export const inject = ['webServer']
+export const inject = ['webServer', 'sessions']
 
 /**
  * Host plugin body: register the update endpoint.

@@ -16,7 +16,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the useSession seat over the Session snapshot.
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
-import { FileTraceButton } from './FileTraceButton.tsx'
+import { FileTraceButton, setCurrentSessionId } from './FileTraceButton.tsx'
 import { startUpdateChip } from './update-chip.ts'
 import { en, zh, type FileTraceKey } from './locales.ts'
 import { applyWithCompat } from './compat.ts'
@@ -61,6 +61,23 @@ export function apply(ctx: ClientContext): void {
     ],
     () => {
       ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'file-trace: dictionaries')
+
+      // Session id for workspace-relative paths (present deliveries): the
+      // optional uiSession service names the main-view session (0.1.6-alpha.2+).
+      ctx.effect(() => {
+        type UISessionCurrent = { getSnapshot(): { key?: unknown } | undefined; subscribe(listener: () => void): () => void }
+        const uiSession = ctx.get('uiSession') as { current: UISessionCurrent } | undefined
+        if (uiSession === undefined) return () => { /* uiSession absent on this host */ }
+        let last = ''
+        const sync = (): void => {
+          const key = uiSession.current.getSnapshot()?.key
+          const id = typeof key === 'string' ? key : ''
+          if (id !== last) { last = id; setCurrentSessionId(id) }
+        }
+        sync()
+        const unsubscribe = uiSession.current.subscribe(sync)
+        return () => { unsubscribe() }
+      }, 'file-trace: session id sync')
 
       ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register(
         { name: 'conversation.session.header.utilities', id: 'file-trace', order: 10, locale: NS },

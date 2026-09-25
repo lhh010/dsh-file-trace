@@ -10,12 +10,24 @@
  */
 import { stat } from 'node:fs/promises'
 import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 // Type-only: pulls the webServer service's Context merge (ctx.webServer).
 import type {} from '@deepseek-ai/dsh-host-webserver'
 
 const ASSET_PATH = '/dsh-file-trace/asset'
+
+/** The workspace directory of one session (present deliveries resolve against it). */
+function sessionWorkspace(ctx: Context, sessionId: string): string | undefined {
+  try {
+    const scope = ctx.sessions.scope(sessionId as Parameters<typeof ctx.sessions.scope>[0])
+    if (scope === undefined) return undefined
+    const cwd = (scope as unknown as { header?: { cwd?: unknown } }).header?.cwd
+    return typeof cwd === 'string' && cwd !== '' ? cwd : undefined
+  } catch {
+    return undefined
+  }
+}
 /** Served image types keyed by extension (SVG only for <img> consumers). */
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   png: 'image/png',
@@ -60,7 +72,18 @@ export function registerAssetEndpoint(ctx: Context): void {
           const url = new URL(req.url ?? '/', 'http://localhost')
           const raw = url.searchParams.get('path') ?? ''
           if (raw === '') { send(400, 'missing path'); return }
-          const abs = resolve(raw)
+          let abs: string
+          if (isAbsolute(raw)) {
+            abs = resolve(raw)
+          } else {
+            // Relative paths resolve against the session workspace (present
+            // deliveries carry workspace-relative paths).
+            const sessionParam = url.searchParams.get('session') ?? ''
+            if (sessionParam === '') { send(400, 'relative path requires session'); return }
+            const cwd = sessionWorkspace(ctx, sessionParam)
+            if (cwd === undefined) { send(404, 'session not found'); return }
+            abs = resolve(cwd, raw)
+          }
           const ext = abs.slice(abs.lastIndexOf('.') + 1).toLowerCase()
           const type = CONTENT_TYPES[ext]
           if (type === undefined) { send(404, 'unsupported image type'); return }

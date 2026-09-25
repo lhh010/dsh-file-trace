@@ -20,6 +20,14 @@ import type { FileTraceKey } from './locales.ts'
 import { redactText } from './redact.ts'
 import css from './FileTrace.module.css'
 
+/** Latest main-view session id (module-level: index.ts keeps it in sync via uiSession). */
+const currentSessionIdStore: { value: string; listeners: Set<() => void> } = { value: '', listeners: new Set() }
+/** Called by the plugin body when the main-view session changes. */
+export function setCurrentSessionId(id: string): void {
+  currentSessionIdStore.value = id
+  for (const listener of [...currentSessionIdStore.listeners]) listener()
+}
+
 /** Renders the remediation banner once when the drawer subtree throws. */
 class DrawerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; message: string }> {
   override state = { failed: false, message: '' }
@@ -248,7 +256,11 @@ function PresentedPane({ path, t }: { readonly path: string; readonly t: (key: F
   useEffect(() => {
     const controller = new AbortController()
     setState({ kind: 'loading' })
-    fetch(assetUrl(path), { signal: controller.signal })
+    const sessionId = currentSessionIdStore.value
+      const url = /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith('/') || path.startsWith('\\\\')
+        ? assetUrl(path)
+        : sessionId === '' ? assetUrl(path) : `${assetUrl(path)}&session=${encodeURIComponent(sessionId)}`
+      fetch(url, { signal: controller.signal })
       .then(async (response): Promise<void> => {
         if (!response.ok) throw new Error(String(response.status))
         setState({ kind: 'ok', text: await response.text() })
