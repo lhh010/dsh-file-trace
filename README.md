@@ -13,7 +13,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.12'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.19'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
