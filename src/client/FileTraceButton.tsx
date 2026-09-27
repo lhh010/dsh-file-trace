@@ -251,7 +251,7 @@ function diffOf(op: FileOp, prior: string | undefined): readonly DiffRow[] {
 }
 
 /** Present-tool delivery pane: the op records no inline content (the file was written by code), so read the current on-disk bytes through the host asset route and render them. The owning session id arrives as the session-scope slot prop (authoritative for resolving the workspace-relative path); the module store synced from uiSession stays only as a fallback for hosts without the prop. */
-function PresentedPane({ path, sessionId: sessionProp, t }: { readonly path: string; readonly sessionId?: string; readonly t: (key: FileTraceKey) => string }): ReactElement {
+function PresentedPane({ path, sessionId: sessionProp, rendered, t }: { readonly path: string; readonly sessionId?: string; readonly rendered: boolean; readonly t: (key: FileTraceKey) => string }): ReactElement {
   const [state, setState] = useState<{ kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; text: string }>({ kind: 'loading' })
   useEffect(() => {
     const controller = new AbortController()
@@ -270,7 +270,7 @@ function PresentedPane({ path, sessionId: sessionProp, t }: { readonly path: str
   }, [path, sessionProp])
   if (state.kind === 'loading') return <div className={css.mdPane} data-file-trace-present-loading>{t('present.loading')}</div>
   if (state.kind === 'error') return <div className={css.mdPane} data-file-trace-present-error role="alert">{t('present.missing')}</div>
-  if (isMarkdownPath(path)) {
+  if (rendered && isMarkdownPath(path)) {
     return <div className={css.readContent} data-file-trace-present><MarkdownView src={state.text} baseDir={path} /></div>
   }
   return (
@@ -316,6 +316,9 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
   // Markdown reading mode for .md files: replaces the raw/diff pane with a
   // rendered document (read = file content; write/edit = resulting content).
   const [mdReading, setMdReading] = useState(false)
+  // Delivered (present-only) files default to the rendered reading mode; the
+  // header toggle flips this one independently of read-op markdown viewing.
+  const [presentReading, setPresentReading] = useState(true)
   // HTML render mode for .html/.htm/.xhtml files: preview the (redacted)
   // document in a sandboxed iframe instead of the raw/diff view.
   const [htmlReading, setHtmlReading] = useState(false)
@@ -998,11 +1001,11 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
                   <button
                     type="button"
                     className={css.readModeBtn}
-                    data-on={mdReading ? 'true' : undefined}
-                    onClick={() => { setMdReading(prev => !prev) }}
-                    title={mdReading ? t('md.raw') : t('md.read')}
+                    data-on={(selected.op.presentOnly === true ? presentReading : mdReading) ? 'true' : undefined}
+                    onClick={() => { if (selected.op.presentOnly === true) setPresentReading(prev => !prev); else setMdReading(prev => !prev) }}
+                    title={(selected.op.presentOnly === true ? presentReading : mdReading) ? t('md.raw') : t('md.read')}
                   >
-                    {mdReading ? t('md.raw') : t('md.read')}
+                    {(selected.op.presentOnly === true ? presentReading : mdReading) ? t('md.raw') : t('md.read')}
                   </button>
                 )}
                 {isHtmlPath(selected.path) && !selected.op.isError && (
@@ -1073,7 +1076,11 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
                     </div>
                   </div>
                 )
-                : mdReading && isMarkdownPath(selected.path)
+                : selected.op.presentOnly === true
+                  ? (
+                    <PresentedPane path={selected.path} sessionId={sessionId} rendered={presentReading} t={t} />
+                  )
+                  : mdReading && isMarkdownPath(selected.path)
                   ? (
                     <div className={css.mdPane} data-file-trace-md-pane ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
                       <MarkdownView src={readingSrc} baseDir={selected.path.replace(/[\\/][^\\/]*$/, '')} />
@@ -1090,10 +1097,6 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
                         srcDoc={readingSrc}
                       />
                     </div>
-                  )
-                  : selected.op.presentOnly === true
-                  ? (
-                    <PresentedPane path={selected.path} sessionId={sessionId} t={t} />
                   )
                   : selected.op.kind === 'read'
                   ? (
