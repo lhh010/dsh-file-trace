@@ -1,14 +1,17 @@
 # @dsh-external/dsh-file-trace
 
 
-> 兼容 DSH `dsh-v0.1.2-alpha.3`（typecheck/build + 87 单测全绿，实机验证；本插件基于 alpha.1+ 编写，rc.2 下无可用版本）
+> 兼容 DSH `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.0-rc.2`（当前 `v0.3.23` 声明支持 `dsh-v0.2.0-rc.2`；版本对照见下方表格与 [`compatibility.json`](compatibility.json)）
 DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看模型读取、写入、编辑的每一个文件**。会话标题栏工具区出现「文件追踪」按钮（带操作数徽标），点击打开浮动窗口，按文件分组列出全部操作，点选任意操作查看带行号的内容或**逐行 diff**。零核心改动，纯浏览器 half 插件。
 
 [English](./README.en.md) | **简体中文**
 
 > **你的 DSH 版本决定装哪个插件版本**（装错会崩：常见症状 `useConversation is not a function`）
-> - DSH **0.1.1-rc.2**：本插件按 **alpha.x** 编写，rc.2 下**无可用版本**
-> - DSH **0.1.2-alpha.1 / alpha.2 / alpha.3 / alpha.4 / alpha.5 / rc.1**：装**新版**（下方默认命令）
+>
+> - DSH **0.1.2-alpha.1 ~ 0.2.0-rc.2**：装**新版**（下方默认命令，当前 `#v0.3.23`；各 DSH 版本对应的插件 tag 见[版本对应表](#版本对应--version-compatibility)）
+> - 更旧的 DSH（0.1.1-rc.2 及以前）：**无可用版本**
+>
+
 ## 安装（profile 模式）
 
 ```sh
