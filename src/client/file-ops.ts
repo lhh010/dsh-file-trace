@@ -205,24 +205,47 @@ export function extractFileOps(
   return ops
 }
 
+/**
+ * Per-block extraction cache, keyed by node/call object identity: a stable
+ * tool-result node is parsed (argsRaw JSON.parse + content join) once per
+ * window lifetime instead of once per streaming delta. Weak so a dropped
+ * window's nodes release naturally. A node whose content changes (streaming
+ * running call, settled result) arrives as a new object and misses — the
+ * cache never serves stale payloads.
+ */
+const ownOpsCache = new WeakMap<object, readonly FileOp[]>()
+
+/** Cached own (non-subCalls) ops of one block; [] when it touches no file. */
+function ownOpsOf(block: RunningToolCall | ToolResultNode): readonly FileOp[] {
+  let cached = ownOpsCache.get(block)
+  if (cached === undefined) {
+    cached = computeOwnOps(block)
+    ownOpsCache.set(block, cached)
+  }
+  return cached
+}
+
+/** The uncached extraction behind {@link ownOpsOf}. */
+function computeOwnOps(block: RunningToolCall | ToolResultNode): readonly FileOp[] {
+  if ('call' in block && block.call !== null && block.call.name === 'present') {
+    const args = parseArgs(block.call.argsRaw)
+    const base = {
+      callId: block.callId,
+      kind: 'write' as const,
+      time: block.callTime ?? block.time,
+      running: false,
+      isError: block.isError,
+    }
+    return presentOpsOf(args, base)
+  }
+  const op = 'call' in block ? opOfResult(block) : opOfRunning(block)
+  return op === undefined ? [] : [op]
+}
+
 /** Recursively collect file operations from a block list (parent or descendant). */
 function collectFromBlocks(blocks: readonly (RunningToolCall | ToolResultNode)[], out: FileOp[]): void {
   for (const block of blocks) {
-    if ('call' in block && block.call !== null && block.call.name === 'present') {
-      const args = parseArgs(block.call.argsRaw)
-      const base = {
-        callId: block.callId,
-        kind: 'write' as const,
-        time: block.callTime ?? block.time,
-        running: false,
-        isError: block.isError,
-      }
-      for (const op of presentOpsOf(args, base)) out.push(op)
-      if (block.subCalls.length > 0) collectFromBlocks(block.subCalls, out)
-      continue
-    }
-    const op = 'call' in block ? opOfResult(block) : opOfRunning(block)
-    if (op !== undefined) out.push(op)
+    out.push(...ownOpsOf(block))
     if (block.subCalls.length > 0) collectFromBlocks(block.subCalls, out)
   }
 }

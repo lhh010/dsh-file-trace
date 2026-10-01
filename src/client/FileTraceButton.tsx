@@ -299,10 +299,16 @@ function PresentedPane({ path, sessionId: sessionProp, rendered, t }: { readonly
 
 /** The header trigger button plus its drawer. */
 export function FileTraceButton({ useConversation, t, sessionId, embedded = false }: FileTraceButtonProps) {
+  // Element-identity equality: with per-node cached extraction (file-ops.ts),
+  // ops elements are stable objects, so a streaming delta that settles no new
+  // file op reuses the previous array contents and skips this re-render
+  // entirely instead of rebuilding the drawer per text chunk.
+  const opsEqual = (a: readonly FileOp[], b: readonly FileOp[]): boolean =>
+    a === b || (a.length === b.length && a.every((op, i) => op === b[i]))
   const rawOps = useConversation((conversation: ConversationSnapshot) => {
     const chat = conversation.views.get('chat')
     return extractFileOps(chat?.legacy.nodes ?? [], chat?.legacy.runningCalls ?? [])
-  })
+  }, opsEqual)
   // Stitch is user-triggered (拼合分段读取 button in the drawer head): the
   // merged read replaces that file's segment rows in the list.
   const [stitchOn, setStitchOn] = useState(false)
@@ -477,6 +483,42 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
   const dockedRef = useRef(docked)
   dockedRef.current = docked
 
+  // Live gesture geometry: while a drag/resize pointer gesture is active, the
+  // drawer's inline styles are written straight to the DOM on each
+  // pointermove (and this ref mirrors them so an interleaved React
+  // re-render — a streaming delta — re-applies the live values instead of
+  // jumping back to the pre-gesture state). pointerup commits the geometry
+  // into React state once; the direct writes keep the drag following the
+  // pointer even when renders are slow.
+  const liveGeomRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null)
+  const applyLiveGeom = (): void => {
+    const g = liveGeomRef.current
+    const el = drawerRef.current
+    if (g === null || el === null) return
+    el.style.left = `${String(g.x)}px`
+    el.style.top = `${String(g.y)}px`
+    el.style.width = `${String(g.w)}px`
+    el.style.height = `${String(g.h)}px`
+  }
+  /** Begin (or continue) a gesture from the current geometry. */
+  const gestureStart = (): { x: number; y: number; w: number; h: number } => {
+    const live = liveGeomRef.current
+    if (live !== null) return live
+    const fresh = { x: posRef.current.x, y: posRef.current.y, w: sizeRef.current.w, h: sizeRef.current.h }
+    liveGeomRef.current = fresh
+    return fresh
+  }
+  /** Commit the live geometry to state and storage, ending the gesture. */
+  const gestureCommit = (): void => {
+    const g = liveGeomRef.current
+    liveGeomRef.current = null
+    if (g === null) return
+    setWinPos({ x: g.x, y: g.y })
+    setWinSize({ w: g.w, h: g.h })
+    saveWin(LS_POS, { x: g.x, y: g.y })
+    saveWin(LS_SIZE, { w: g.w, h: g.h })
+  }
+
   /** Apply the docked-right geometry: flush to the right edge, full height. */
   const applyDock = (): void => {
     const w = sizeRef.current.w
@@ -497,23 +539,25 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
     }
     const startX = e.clientX
     const startY = e.clientY
-    const start = posRef.current
-    const size = sizeRef.current
+    const start = { ...gestureStart() }
     const onMove = (ev: PointerEvent): void => {
-      const x = Math.min(Math.max(start.x + ev.clientX - startX, 8), Math.max(8, window.innerWidth - size.w - 8))
-      const y = Math.min(Math.max(start.y + ev.clientY - startY, 8), Math.max(8, window.innerHeight - 64))
-      setWinPos({ x, y })
+      const g = {
+        ...start,
+        x: Math.min(Math.max(start.x + ev.clientX - startX, 8), Math.max(8, window.innerWidth - start.w - 8)),
+        y: Math.min(Math.max(start.y + ev.clientY - startY, 8), Math.max(8, window.innerHeight - 64)),
+      }
+      liveGeomRef.current = g
+      applyLiveGeom()
     }
     const onUp = (up: PointerEvent): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      gestureCommit()
       if (up.clientX >= window.innerWidth - SNAP_PX) {
         setDocked(true)
         saveWin(LS_DOCK, 'right')
         applyDock()
       }
-      saveWin(LS_POS, posRef.current)
-      saveWin(LS_SIZE, sizeRef.current)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -522,18 +566,17 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
   /** Resize the floating window from the left edge (right edge anchored). */
   const startWinResizeW = (e: ReactPointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
-    const start = sizeRef.current
-    const anchorRight = posRef.current.x + start.w
+    const anchorRight = (() => { const s = gestureStart(); return s.x + s.w })()
     const onMove = (ev: PointerEvent): void => {
       const w = Math.min(Math.max(anchorRight - ev.clientX, 360), Math.min(window.innerWidth - 16, anchorRight - 8))
-      setWinSize(prev => ({ ...prev, w }))
-      setWinPos(prev => ({ ...prev, x: anchorRight - w }))
+      const s = gestureStart()
+      liveGeomRef.current = { ...s, w, x: anchorRight - w }
+      applyLiveGeom()
     }
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      saveWin(LS_SIZE, sizeRef.current)
-      saveWin(LS_POS, posRef.current)
+      gestureCommit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -543,15 +586,16 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
   const startWinResizeH = (e: ReactPointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
     const startY = e.clientY
-    const startH = sizeRef.current.h
+    const start = { ...gestureStart() }
     const onMove = (ev: PointerEvent): void => {
-      const h = Math.min(Math.max(startH + ev.clientY - startY, 200), window.innerHeight - posRef.current.y - 8)
-      setWinSize(prev => ({ ...prev, h }))
+      const h = Math.min(Math.max(start.h + ev.clientY - startY, 200), window.innerHeight - start.y - 8)
+      liveGeomRef.current = { ...start, h }
+      applyLiveGeom()
     }
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      saveWin(LS_SIZE, sizeRef.current)
+      gestureCommit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -561,18 +605,17 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
   const startWinResizeHT = (e: ReactPointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
     const startY = e.clientY
-    const startH = sizeRef.current.h
-    const bottom = posRef.current.y + startH
+    const start = { ...gestureStart() }
+    const bottom = start.y + start.h
     const onMove = (ev: PointerEvent): void => {
-      const h = Math.min(Math.max(startH + (startY - ev.clientY), 200), window.innerHeight - 8)
-      setWinSize(prev => ({ ...prev, h }))
-      setWinPos(prev => ({ ...prev, y: bottom - h }))
+      const h = Math.min(Math.max(start.h + (startY - ev.clientY), 200), window.innerHeight - 8)
+      liveGeomRef.current = { ...start, h, y: bottom - h }
+      applyLiveGeom()
     }
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      saveWin(LS_SIZE, sizeRef.current)
-      saveWin(LS_POS, posRef.current)
+      gestureCommit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -582,15 +625,16 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
   const startWinResizeWR = (e: ReactPointerEvent<HTMLDivElement>): void => {
     e.preventDefault()
     const startX = e.clientX
-    const startW = sizeRef.current.w
+    const start = { ...gestureStart() }
     const onMove = (ev: PointerEvent): void => {
-      const w = Math.min(Math.max(startW + (ev.clientX - startX), 360), window.innerWidth - posRef.current.x - 8)
-      setWinSize(prev => ({ ...prev, w }))
+      const w = Math.min(Math.max(start.w + (ev.clientX - startX), 360), window.innerWidth - start.x - 8)
+      liveGeomRef.current = { ...start, w }
+      applyLiveGeom()
     }
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      saveWin(LS_SIZE, sizeRef.current)
+      gestureCommit()
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -901,7 +945,12 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
           aria-label={embedded ? undefined : t('title')}
           style={(embedded
             ? { '--ft-list-font': `${String(listFont)}px`, '--ft-pane-font': `${String(paneFont)}px` } as CSSProperties
-            : { '--ft-list-font': `${String(listFont)}px`, '--ft-pane-font': `${String(paneFont)}px`, ...(docked
+            : { '--ft-list-font': `${String(listFont)}px`, '--ft-pane-font': `${String(paneFont)}px`, ...(liveGeomRef.current !== null
+              // Mid-gesture: pass the live geometry through so a streaming
+              // re-render cannot snap the drawer back to the pre-gesture
+              // state (the same values were already written to the DOM).
+              ? { left: liveGeomRef.current.x, top: liveGeomRef.current.y, width: liveGeomRef.current.w, height: liveGeomRef.current.h }
+              : docked
               ? { left: window.innerWidth - winSize.w, top: 0, width: winSize.w, height: window.innerHeight }
               : {
                 left: Number.isFinite(winPos.x) ? Math.min(Math.max(winPos.x, 8), Math.max(8, window.innerWidth - 360)) : Math.max(16, window.innerWidth - 576),

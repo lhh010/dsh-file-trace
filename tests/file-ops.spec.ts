@@ -19,6 +19,27 @@ function result(callId: string, name: string, args: Record<string, unknown>, tim
 }
 
 describe('extractFileOps', () => {
+  it('keeps op element identities stable across calls with unchanged nodes (streaming re-render guard)', () => {
+    // The component subscribes with an element-identity equality so a
+    // streaming delta that settles no new file op skips its re-render; the
+    // per-node cache behind this must return the SAME op objects (and skip
+    // re-parsing payloads) while the node objects are unchanged.
+    const nodes = [
+      result('r1', 'read', { file_path: 'a.ts' }, 1, false, [{ text: 'body' }]),
+      result('w1', 'write', { file_path: 'b.ts', content: 'new body' }, 2),
+    ]
+    const first = extractFileOps(nodes, [])
+    const second = extractFileOps(nodes, [])
+    expect(second).not.toBe(first) // fresh arrays…
+    expect(second[0]).toBe(first[0]) // …but stable elements
+    expect(second[1]).toBe(first[1])
+    // A rebuilt node (settled result replaces the running call) misses the
+    // cache and yields a fresh op object — no stale payload reuse.
+    const settled = [nodes[1]!, result('r1', 'read', { file_path: 'a.ts' }, 1, false, [{ text: 'changed' }])]
+    const third = extractFileOps(settled, [])
+    expect(third.find(op => op.callId === 'r1')?.read).toBe('changed')
+  })
+
   it('extracts read/write/edit with paths and payloads', () => {
     const ops = extractFileOps([
       result('r1', 'read', { file_path: 'a.ts' }, 1),

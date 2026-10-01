@@ -65,13 +65,20 @@ export function FileTraceTab({ ctx, scope }: FileTraceTabProps) {
   }
 
   // Selector hook over the conversation source — the same contract the slot
-  // machinery injects as the useConversation standard prop.
-  const useConversation = <S,>(selector: (snapshot: ConversationSnapshot) => S): S => {
+  // machinery injects as the useConversation standard prop. The optional eq
+  // lets the consumer skip re-renders when the selected value is unchanged.
+  const useConversation = <S,>(selector: (snapshot: ConversationSnapshot) => S, eq?: (a: S, b: S) => boolean): S => {
     const [value, setValue] = useState(() => selector(conversation.getSnapshot()))
     useEffect(() => {
-      setValue(selector(conversation.getSnapshot()))
-      return conversation.subscribe(() => { setValue(selector(conversation.getSnapshot())) })
-      // The selector only reads its snapshot argument; conversation is stable
+      const apply = (): void => {
+        setValue(prev => {
+          const next = selector(conversation.getSnapshot())
+          return prev === next || eq?.(prev, next) === true ? prev : next
+        })
+      }
+      apply()
+      return conversation.subscribe(apply)
+      // The selector/eq read only their own inputs; conversation is stable
       // for the binding's lifetime, so the effect runs once per source.
     }, [conversation])
     return value
