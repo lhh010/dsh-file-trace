@@ -63,6 +63,20 @@ describe('FileTraceButton', () => {
     expect(screen.getByText('1').textContent).toBe('1')
   })
 
+  it('embedded mount renders the drawer statically without a trigger button', () => {
+    const conversation = conversationOf([editNode('e1', 'a.ts', 'x', 'y', 1)])
+    const { container } = render(<FileTraceButton {...propsWith(conversation)} embedded />)
+    // No header trigger in the embedded variant; the drawer is present and
+    // marked embedded (static fill, no dialog semantics).
+    expect(container.querySelector('[data-file-trace-trigger]')).toBeNull()
+    const drawer = container.querySelector('[data-file-trace-drawer]')
+    expect(drawer).not.toBeNull()
+    expect(drawer?.getAttribute('data-embedded')).toBe('true')
+    expect(drawer?.getAttribute('role')).toBeNull()
+    // The file list is live immediately (no open state to toggle).
+    expect(screen.getByText('a.ts')).toBeTruthy()
+  })
+
   it('opens the drawer, lists the file, and renders a mod-tinted diff', () => {
     const conversation = conversationOf([editNode('e1', 'src/a.ts', 'old line', 'new line', 1)])
     const { container } = render(<FileTraceButton {...propsWith(conversation)} />)

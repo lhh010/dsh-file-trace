@@ -17,6 +17,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the useSession seat over the Session snapshot.
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import { FileTraceButton, setCurrentSessionId } from './FileTraceButton.tsx'
+import { registerSidebarTab } from './sidebar-tab.tsx'
 import { startUpdateChip } from './update-chip.ts'
 import { en, zh, type FileTraceKey } from './locales.ts'
 import { applyWithCompat } from './compat.ts'
@@ -83,6 +84,10 @@ export function apply(ctx: ClientContext): void {
         { name: 'conversation.session.header.utilities', id: 'file-trace', order: 10, locale: NS },
         FileTraceButton,
       ))
+
+      // Dual mount: a native better-sidebar tab when that service is present
+      // (optional peer); the header trigger above stays either way.
+      registerSidebarTab(ctx)
 
       // Version-check notice chip (green=latest / gray=unreachable / blue=update).
       startUpdateChip()

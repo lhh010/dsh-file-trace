@@ -1,6 +1,6 @@
 {
   "name": "@dsh-external/dsh-file-trace",
-  "version": "0.3.23",
+  "version": "0.3.24",
   "private": true,
   "type": "module",
   "description": "DSH Web UI 文件追踪插件：记录模型读取/写入/编辑的文件，会话标题栏一键查看变更列表与逐行 diff（删除红、新增绿、修改蓝）",
@@ -35,10 +35,15 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1-rc.1",
+    "dsh-better-sidebar": "workspace:*",
     "react": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "dsh-better-sidebar": { "optional": true }
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "link:../.dsh/source/current/vendor/cordis",
+    "dsh-better-sidebar": "link:../DSH-better-sidebar",
     "@deepseek-ai/dsh-api-session-controller": "link:../.dsh/source/current/packages/api/session-controller",
     "@deepseek-ai/dsh-client-locale": "link:../.dsh/source/current/packages/client/locale",
     "@deepseek-ai/dsh-client-ui-chat": "link:../.dsh/source/current/packages/client/ui-chat",

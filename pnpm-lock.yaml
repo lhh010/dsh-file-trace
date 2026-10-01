@@ -53,6 +53,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
+      dsh-better-sidebar:
+        specifier: link:../DSH-better-sidebar
+        version: link:../DSH-better-sidebar
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2

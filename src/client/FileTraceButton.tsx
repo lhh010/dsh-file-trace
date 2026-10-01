@@ -6,7 +6,7 @@
  * line-diff view (del red / add green / mod blue via --dsw state tokens).
  */
 import { Component, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode } from 'react'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -102,7 +102,19 @@ function diffBlockEntries(rows: readonly DiffRow[], lang: string | undefined): M
 }
 
 /** Trigger props: session standard kit + locale seat. */
-export type FileTraceButtonProps = PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'fileTrace'>
+/**
+ * Consumed props only: the header slot hands the full session standard props
+ * (useSession/useInput/…); the better-sidebar tab mount supplies the same
+ * conversation selector hook from the session binding. A component accepting
+ * a subset stays assignable where the full set is given.
+ */
+export type FileTraceButtonProps = PropsLocale<'fileTrace'> & {
+  useConversation: <S>(sel: (snapshot: ConversationSnapshot) => S, eq?: (a: S, b: S) => boolean) => S
+  sessionId?: string
+  /** Embedded mount (better-sidebar tab): no trigger button, the drawer fills
+   * its container statically — no drag, resize, docking, or Escape close. */
+  embedded?: boolean
+}
 
 /** Whether a path is an HTML document eligible for the render preview. */
 function isHtmlPath(path: string): boolean {
@@ -251,7 +263,7 @@ function diffOf(op: FileOp, prior: string | undefined): readonly DiffRow[] {
 }
 
 /** Present-tool delivery pane: the op records no inline content (the file was written by code), so read the current on-disk bytes through the host asset route and render them. The owning session id arrives as the session-scope slot prop (authoritative for resolving the workspace-relative path); the module store synced from uiSession stays only as a fallback for hosts without the prop. */
-function PresentedPane({ path, sessionId: sessionProp, rendered, t }: { readonly path: string; readonly sessionId?: string; readonly rendered: boolean; readonly t: (key: FileTraceKey) => string }): ReactElement {
+function PresentedPane({ path, sessionId: sessionProp, rendered, t }: { readonly path: string; readonly sessionId?: string | undefined; readonly rendered: boolean; readonly t: (key: FileTraceKey) => string }): ReactElement {
   const [state, setState] = useState<{ kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; text: string }>({ kind: 'loading' })
   useEffect(() => {
     const controller = new AbortController()
@@ -286,7 +298,7 @@ function PresentedPane({ path, sessionId: sessionProp, rendered, t }: { readonly
 }
 
 /** The header trigger button plus its drawer. */
-export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButtonProps) {
+export function FileTraceButton({ useConversation, t, sessionId, embedded = false }: FileTraceButtonProps) {
   const rawOps = useConversation((conversation: ConversationSnapshot) => {
     const chat = conversation.views.get('chat')
     return extractFileOps(chat?.legacy.nodes ?? [], chat?.legacy.runningCalls ?? [])
@@ -305,7 +317,7 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
     return false
   }, [rawOps])
   const groups = useMemo(() => groupByFile(ops), [ops])
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(embedded)
   // Update check: newest tag from the public mirror, once per open.
   const [latestTag, setLatestTag] = useState<string | undefined>(undefined)
   // True when the version check could not reach the network (shown in the drawer head).
@@ -459,6 +471,7 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
   const LS_DOCK = 'dsh-file-trace:dock'
   const SNAP_PX = 24
   const [docked, setDocked] = useState<boolean>(() => {
+    if (embedded) return false
     try { return window.localStorage.getItem(LS_DOCK) === 'right' } catch { return false }
   })
   const dockedRef = useRef(docked)
@@ -604,6 +617,7 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
   // The panel's left-edge resize handle is the splitter between the two.
   // Closing the panel removes the margin — reopening (still docked) re-applies.
   useEffect(() => {
+    if (embedded) return
     const id = 'dsh-file-trace-dock-style'
     const existing = document.getElementById(id)
     if (docked && open) {
@@ -618,7 +632,7 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
   }, [docked, open, winSize.w])
   // Restore the docked geometry on mount; keep the dock pinned when the
   // viewport resizes (the sidebar stays flush-right and full-height).
-  useEffect(() => { if (dockedRef.current) applyDock() }, [])
+  useEffect(() => { if (!embedded && dockedRef.current) applyDock() }, [])
   useEffect(() => {
     const onResize = (): void => { if (dockedRef.current) applyDock() }
     window.addEventListener('resize', onResize)
@@ -658,9 +672,10 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
     })
   }
 
-  // Escape closes the drawer, mirroring platform dialog behavior.
+  // Escape closes the drawer, mirroring platform dialog behavior (an embedded
+  // mount has nothing to close — its container owns the visibility).
   useEffect(() => {
-    if (!open) return
+    if (!open || embedded) return
     const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') setOpen(false) }
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('keydown', onKey) }
@@ -860,43 +875,50 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
 
   return (
     <>
-      <button
-        type="button"
-        className={css.trigger}
-        data-file-trace-trigger
-        title={t('open')}
-        aria-label={`${t('title')} (${String(count)})`}
-        onClick={() => { setOpen(prev => !prev); setSelected(null) }}
-      >
-        <span className={css.triggerLabel}>{t('title')}</span>
-        {count > 0 && <span className={css.badge}>{String(count)}</span>}
-        {newerTag !== undefined && <span className={css.updateDot} title={`新版本 ${newerTag} 可用`}>⟳</span>}
-      </button>
+      {embedded ? null : (
+        <button
+          type="button"
+          className={css.trigger}
+          data-file-trace-trigger
+          title={t('open')}
+          aria-label={`${t('title')} (${String(count)})`}
+          onClick={() => { setOpen(prev => !prev); setSelected(null) }}
+        >
+          <span className={css.triggerLabel}>{t('title')}</span>
+          {count > 0 && <span className={css.badge}>{String(count)}</span>}
+          {newerTag !== undefined && <span className={css.updateDot} title={`新版本 ${newerTag} 可用`}>⟳</span>}
+        </button>
+      )}
       {open && (
         <DrawerErrorBoundary key={String(selected?.op.callId ?? 'open')}>
         <div
           className={css.drawer}
           data-file-trace-drawer
+          data-embedded={embedded ? 'true' : undefined}
           ref={drawerRef}
           data-dock={docked ? 'right' : undefined}
-          role="dialog"
-          aria-label={t('title')}
-          style={{ '--ft-list-font': `${String(listFont)}px`, '--ft-pane-font': `${String(paneFont)}px`, ...(docked
-            ? { left: window.innerWidth - winSize.w, top: 0, width: winSize.w, height: window.innerHeight }
-            : {
-              left: Number.isFinite(winPos.x) ? Math.min(Math.max(winPos.x, 8), Math.max(8, window.innerWidth - 360)) : Math.max(16, window.innerWidth - 576),
-              top: Number.isFinite(winPos.y) ? Math.min(Math.max(winPos.y, 8), Math.max(8, window.innerHeight - 120)) : 16,
-              width: Number.isFinite(winSize.w) ? Math.min(Math.max(winSize.w, 360), window.innerWidth - 16) : Math.min(560, window.innerWidth - 16),
-              height: Number.isFinite(winSize.h) ? Math.min(Math.max(winSize.h, 200), window.innerHeight - 16) : Math.min(720, window.innerHeight - 16),
-            }) } as CSSProperties }
+          role={embedded ? undefined : 'dialog'}
+          aria-label={embedded ? undefined : t('title')}
+          style={(embedded
+            ? { '--ft-list-font': `${String(listFont)}px`, '--ft-pane-font': `${String(paneFont)}px` } as CSSProperties
+            : { '--ft-list-font': `${String(listFont)}px`, '--ft-pane-font': `${String(paneFont)}px`, ...(docked
+              ? { left: window.innerWidth - winSize.w, top: 0, width: winSize.w, height: window.innerHeight }
+              : {
+                left: Number.isFinite(winPos.x) ? Math.min(Math.max(winPos.x, 8), Math.max(8, window.innerWidth - 360)) : Math.max(16, window.innerWidth - 576),
+                top: Number.isFinite(winPos.y) ? Math.min(Math.max(winPos.y, 8), Math.max(8, window.innerHeight - 120)) : 16,
+                width: Number.isFinite(winSize.w) ? Math.min(Math.max(winSize.w, 360), window.innerWidth - 16) : Math.min(560, window.innerWidth - 16),
+                height: Number.isFinite(winSize.h) ? Math.min(Math.max(winSize.h, 200), window.innerHeight - 16) : Math.min(720, window.innerHeight - 16),
+              }) } as CSSProperties) }
         >
-          <div
-            className={css.resizeW}
-            data-ft-resize-w
-            onPointerDown={startWinResizeW}
-            role="separator"
-            aria-orientation="vertical"
-          />
+          {embedded ? null : (
+            <div
+              className={css.resizeW}
+              data-ft-resize-w
+              onPointerDown={startWinResizeW}
+              role="separator"
+              aria-orientation="vertical"
+            />
+          )}
           {docked ? null : (
             <div
               className={css.resizeH}
@@ -924,7 +946,7 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
               aria-orientation="vertical"
             />
           )}
-          <div className={css.drawerHead} onPointerDown={startWinDrag}>
+          <div className={css.drawerHead} onPointerDown={embedded ? undefined : startWinDrag}>
             <span className={css.drawerTitle}>{t('title')}</span>
             <span className={css.drawerMeta}>
               {String(groups.size)} {t('files')} · {String(count)} ops
@@ -941,7 +963,7 @@ export function FileTraceButton({ useConversation, t, sessionId }: FileTraceButt
             )}
             {updateMsg !== null && <span className={css.updateMsg} title={updateMsg}>{updateMsg}</span>}
           {checkFailed && newerTag === undefined && updateMsg === null && <span className={css.updateMsg} title="无法连接宿主端点 / GitHub，稍后重开抽屉重试">⚠ 版本检查失败</span>}
-            <button type="button" className={css.close} onClick={() => { setOpen(false) }}>{t('close')}</button>
+            {embedded ? null : <button type="button" className={css.close} onClick={() => { setOpen(false) }}>{t('close')}</button>}
           </div>
           <div className={css.drawerBody} ref={listScrollRef} onScroll={(e) => { listScrollMemoryRef.current = e.currentTarget.scrollTop }}>
             {count === 0 && <div className={css.empty}>{t('empty')}</div>}

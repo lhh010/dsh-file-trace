@@ -1,14 +1,14 @@
 # @dsh-external/dsh-file-trace
 
 
-> 兼容 DSH `dsh-v0.1.2-alpha.1 ~ dsh-v0.2.0-rc.2`（当前 `v0.3.23` 声明支持 `dsh-v0.2.0-rc.2`；版本对照见下方表格与 [`compatibility.json`](compatibility.json)）
+> 兼容 DSH `dsh-v0.1.2-alpha.1 ~ dsh-v0.2.0-rc.2`（当前 `v0.3.24` 声明支持 `dsh-v0.2.0-rc.2`；版本对照见下方表格与 [`compatibility.json`](compatibility.json)）
 DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看模型读取、写入、编辑的每一个文件**。会话标题栏工具区出现「文件追踪」按钮（带操作数徽标），点击打开浮动窗口，按文件分组列出全部操作，点选任意操作查看带行号的内容或**逐行 diff**。零核心改动，纯浏览器 half 插件。
 
 [English](./README.en.md) | **简体中文**
 
 > **你的 DSH 版本决定装哪个插件版本**（装错会崩：常见症状 `useConversation is not a function`）
 >
-> - DSH **0.1.2-alpha.1 ~ 0.2.0-rc.2**：装**新版**（下方默认命令，当前 `#v0.3.23`；各 DSH 版本对应的插件 tag 见[版本对应表](#版本对应--version-compatibility)）
+> - DSH **0.1.2-alpha.1 ~ 0.2.0-rc.2**：装**新版**（下方默认命令，当前 `#v0.3.24`；各 DSH 版本对应的插件 tag 见[版本对应表](#版本对应--version-compatibility)）
 > - 更旧的 DSH（0.1.1-rc.2 及以前）：**无可用版本**
 >
 
@@ -16,7 +16,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.23'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.24'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -82,7 +82,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.23`（默认） | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | 声明支持 dsh-v0.2.0-rc.2（升级实机验证：六插件挂载激活正常，零适配改动）；typecheck/113 单测/构建全绿 |
+| `v0.3.24`（默认） | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | **better-sidebar 侧栏 Tab 双挂载**：检测到 `ctx.betterSidebar` 服务时把追踪面板注册为原生侧栏 Tab（`dsh-file-trace:trace`，嵌入布局静态铺满面板，数据走 uiSession 会话绑定、与头部触发同源）；未安装 better-sidebar 时自动跳过、保持原浮动窗（optional peer，无新增必装依赖）；typecheck/114 单测/构建全绿，实机 web 验证（Tab 文件列表 + 逐行 diff + 双挂载并存） |
+| `v0.3.23` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | 声明支持 dsh-v0.2.0-rc.2（升级实机验证：六插件挂载激活正常，零适配改动）；typecheck/113 单测/构建全绿 |
 | `v0.3.22` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1` | 声明支持 dsh-v0.2.0-rc.1（升级实机验证：六插件挂载激活正常，零适配改动）；typecheck/113 单测/构建全绿 |
 | `v0.3.21` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2` | 声明支持 dsh-v0.1.7-rc.2（npm 升级实机验证：六插件挂载激活正常，零适配改动）；typecheck/113 单测/构建全绿 |
 | `v0.3.20` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1` | **交付文件阅读/原文切换**：v0.3.18 起交付（present）的 markdown 文件只显示渲染结果、无法查看源码——现接入头部「阅读/原文」切换（交付文件默认渲染、可切带行号原文），并修复渲染分支顺序（阅读模式分支此前会以空内容抢占交付面板）；typecheck/113 单测/构建全绿 |
