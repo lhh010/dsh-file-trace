@@ -11,7 +11,7 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.25'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.26'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +34,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.25'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.26'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)
@@ -67,6 +67,7 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
+| `v0.3.26` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1`–`0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-alpha.1` | Declares support for dsh-v0.2.1-alpha.1 (upgrade verified live on the web host: all seven plugins mount and activate, zero adaptation); typecheck/115 tests/build green |
 | `v0.3.25` (default) | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1`–`0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2` | **Performance fix under streaming output**: ① per-node identity-cached extraction (a stable tool-result is parsed/joined once, not once per streaming delta); ② element-identity `eq` on the conversation subscription — text streaming that settles no new file op skips the re-render entirely; ③ drag/resize gestures write styles straight to the DOM during the gesture and commit state on release (dragging stays responsive under render storms); also fixes a pre-existing bug where the persisted localStorage position was the pre-drag one. typecheck/115 tests/build green, live-verified mid-gesture following + correct persistence |
 | `v0.3.24` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1`–`0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2` | **better-sidebar native tab (dual mount)**: when the `ctx.betterSidebar` service is present the trace panel also registers as a native sidebar tab (`dsh-file-trace:trace`, embedded static layout, data from the same session conversation source as the header trigger); without better-sidebar the floating window stays as-is (optional peer, registration safely skipped). typecheck/114 tests/build green, verified live on web (tab list + line diff + dual mount coexisting; rows v0.3.15–v0.3.23 are recorded in the Chinese README) |
 | `v0.3.14` | `dsh-v0.1.2-alpha.1`–`alpha.5`, `rc.1`, `0.1.3-alpha.1`–`0.1.6-alpha.1` | **Math rendering**: `$$`/`$` formulas in the Markdown reading mode are typeset for real via a lazily-loaded katex chunk (single file, fonts inlined as base64), falling back to raw text on load failure; typecheck/105 tests/build green, chunk route verified 200 on the live host; takes effect after a host restart (rows v0.3.11–v0.3.13 are recorded in the Chinese README) |
