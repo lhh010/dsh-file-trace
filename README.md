@@ -82,7 +82,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.26`（默认） | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1` | 声明支持 dsh-v0.2.1-alpha.1（升级实机验证：web 宿主七插件挂载激活正常，零适配改动）；typecheck/115 单测/构建全绿 |
+| `v0.3.27`（默认） | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1`、`0.2.1-alpha.2` | 声明支持 dsh-v0.2.1-alpha.2（升级实机验证：web profile `--dump-config` 全插件行加载、peer 校验零错误，宿主启动监听正常，零适配改动）；双 bundle `node --check` 通过 |
+| `v0.3.26` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1` | 声明支持 dsh-v0.2.1-alpha.1（升级实机验证：web 宿主七插件挂载激活正常，零适配改动）；typecheck/115 单测/构建全绿 |
 | `v0.3.25` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | **流式输出下的性能修复**：① 按节点身份缓存操作提取（稳定 tool-result 只 parse/拼接一次，不再每个流式 delta 全窗口重算）；② 会话订阅传元素身份 eq——无新文件操作的流式文本期间完全跳过重渲染；③ 拖动/缩放手势改为 pointermove 直写 DOM、松手才提交 state（渲染风暴下拖动依然跟手）；并修复拖动后 localStorage 持久化保存旧位置的预存 bug。typecheck/115 单测/构建全绿，实机验证手势中途位置精确跟随 + 持久化正确 |
 | `v0.3.24` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | **better-sidebar 侧栏 Tab 双挂载**：检测到 `ctx.betterSidebar` 服务时把追踪面板注册为原生侧栏 Tab（`dsh-file-trace:trace`，嵌入布局静态铺满面板，数据走 uiSession 会话绑定、与头部触发同源）；未安装 better-sidebar 时自动跳过、保持原浮动窗（optional peer，无新增必装依赖）；typecheck/114 单测/构建全绿，实机 web 验证（Tab 文件列表 + 逐行 diff + 双挂载并存） |
 | `v0.3.23` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | 声明支持 dsh-v0.2.0-rc.2（升级实机验证：六插件挂载激活正常，零适配改动）；typecheck/113 单测/构建全绿 |
