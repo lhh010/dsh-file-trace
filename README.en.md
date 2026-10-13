@@ -9,9 +9,12 @@ A DSH Web UI file-trace plugin: like Codex / Claude Code, it **records and revie
 > - DSH **0.1.2-alpha.1 / alpha.2 / alpha.3 / alpha.4 / alpha.5 / rc.1**: install the **new** version (the default command below)
 ## Install (profile mode)
 
+> **Install note (auto-mounts since v0.3.28)**: this package ships its own `cordis.patch.yml` and declares `dsh.bundle.patch` — `dsh plugin --profile web add` registers and mounts the profile layer automatically; the manual `insert` row is only needed for pinned older tags. **GUI caveat**: the Add-plugin dialog accepts registry package names or local directory paths only; `name@github:owner/repo#tag` is pnpm alias syntax (CLI-only) and fails there with `ERR_PNPM_INVALID_PACKAGE_NAME`. Clone and use the local path, or wait for the npm release.
+
+
 ```sh
 # Option 1: pinned-tag git dependency (public mirror, recommended; github:lhh010/dsh-file-trace also works)
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.26'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.28'
 
 # Option 2: local link (development; cloned repos ship build artifacts, rebuild with pnpm run build after edits)
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -34,7 +37,7 @@ Config line (`$DSH_HOME/profiles/web/cordis.patch.yml`, hot-reloaded, no restart
 Paste this prompt into any DSH session and the agent installs it for you:
 
 > Install the dsh-file-trace plugin (DSH file trace: records and reviews model file reads/writes/edits with diffs):
-> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.26'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
+> 1. Run `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.28'` (the first run may fail because pnpm 11 blocks node-pty build scripts)
 > 2. Under `~/.dsh/profiles/web`, run `pnpm approve-builds --all` (approve the build scripts)
 > 3. Re-run the install command from step 1
 > 4. Append the `- insert` plugin row (id: dsh-file-trace, name: '@dsh-external/dsh-file-trace') to `~/.dsh/profiles/web/cordis.patch.yml`, then remind me to hard-refresh the browser (Ctrl/Cmd+Shift+R)

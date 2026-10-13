@@ -1,0 +1,4 @@
+# The dsh-file-trace bundle adds the file-operation trace panel to a DSH Web profile. Installed as one profile layer: the loader row scans for the dshClient declaration and mounts the client bundle in the browser.
+- insert:
+    - id: dsh-file-trace
+      name: '@dsh-external/dsh-file-trace'
