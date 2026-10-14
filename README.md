@@ -85,7 +85,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.28`（默认） | 与上一版相同 | **自带 bundle 声明**：补齐 `cordis.patch.yml` 并声明 `dsh.bundle.patch`——`dsh plugin --profile web add` 装完自动注册并挂载 profile 层，不再需要手写 insert 行（社区反馈「GUI 安装后不生效」的根因）；双 bundle `node --check` 通过 |
+| `v0.3.29`（默认） | 与上一版相同 | **Markdown 阅读模式渲染内联 SVG 与 `<details>` 折叠块**：文档里直接书写的 `<svg>` 标记（可带 `<?xml?>` 声明、可嵌在 `<details><summary>` 下）经 DOMParser 校验后以 blob `<img>` 真实渲染（图像上下文禁脚本、SMIL 动画照常，与 `.svg` 文件预览同一安全通道）；非法 XML 降级为源码块而非无声裂图；`<details>` 渲染为原生可折叠块（summary + 递归内层块）。GitHub 风格图表嵌入自此可见；typecheck/125 单测/构建全绿 |
+| `v0.3.28` | 与上一版相同 | **自带 bundle 声明**：补齐 `cordis.patch.yml` 并声明 `dsh.bundle.patch`——`dsh plugin --profile web add` 装完自动注册并挂载 profile 层，不再需要手写 insert 行（社区反馈「GUI 安装后不生效」的根因）；双 bundle `node --check` 通过 |
 | `v0.3.27` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1`、`0.2.1-alpha.2` | 声明支持 dsh-v0.2.1-alpha.2（升级实机验证：web profile `--dump-config` 全插件行加载、peer 校验零错误，宿主启动监听正常，零适配改动）；双 bundle `node --check` 通过 |
 | `v0.3.26` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1` | 声明支持 dsh-v0.2.1-alpha.1（升级实机验证：web 宿主七插件挂载激活正常，零适配改动）；typecheck/115 单测/构建全绿 |
 | `v0.3.25` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | **流式输出下的性能修复**：① 按节点身份缓存操作提取（稳定 tool-result 只 parse/拼接一次，不再每个流式 delta 全窗口重算）；② 会话订阅传元素身份 eq——无新文件操作的流式文本期间完全跳过重渲染；③ 拖动/缩放手势改为 pointermove 直写 DOM、松手才提交 state（渲染风暴下拖动依然跟手）；并修复拖动后 localStorage 持久化保存旧位置的预存 bug。typecheck/115 单测/构建全绿，实机验证手势中途位置精确跟随 + 持久化正确 |

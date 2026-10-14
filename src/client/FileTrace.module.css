@@ -155,6 +155,14 @@
 .mdMermaid { margin: 0.8em 0; overflow-x: auto; text-align: center; background: var(--dsw-alias-bg-base); border-radius: 8px; padding: 6px 0; cursor: zoom-in; }
 .mdMermaid svg { max-width: 100%; height: auto; }
 
+/* Raw inline <svg> markup block (rendered via blob <img>, safe context). */
+.mdInlineSvg { margin: 0.8em 0; overflow-x: auto; text-align: center; }
+.mdInlineSvg img { max-width: 100%; height: auto; }
+
+/* Native <details> wrapper (collapsible diagram headings). */
+.mdDetails { margin: 0.8em 0; padding: 6px 10px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 8px; background: var(--dsw-alias-interactive-bg-muted, var(--dsw-alias-border-l1)); }
+.mdDetailsSummary { cursor: pointer; font-weight: 600; }
+
 /* Mermaid zoom/pan modal (click a rendered diagram to open). */
 .mdMermaidOverlay { position: fixed; inset: 0; z-index: 1300; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--dsw-alias-bg-base) 88%, transparent); backdrop-filter: blur(2px); }
 .mdMermaidStage { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: grab; touch-action: none; }

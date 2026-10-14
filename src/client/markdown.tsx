@@ -182,6 +182,46 @@ function MermaidBlock({ code }: { readonly code: string }): ReactElement {
   </div>
 }
 
+/** A raw inline <svg> markup block from the markdown body. Rendered through
+ *  the same safe channel as traced .svg files: DOMParser proves the markup
+ *  well-formed XML, then it wraps into an image/svg+xml Blob URL shown in an
+ *  <img> — SVG scripts never execute in image context, external references
+ *  do not load, and SMIL animations still run. Invalid XML (a corrupted or
+ *  truncated block) degrades to the source in a code block, never a silent
+ *  broken image. */
+function InlineSvgBlock({ code }: { readonly code: string }): ReactElement {
+  const [url, setUrl] = useState<string | null>(null)
+  const [invalid, setInvalid] = useState(false)
+  const [imgFailed, setImgFailed] = useState(false)
+  useEffect(() => {
+    let objectUrl: string | undefined
+    setUrl(null)
+    setInvalid(false)
+    setImgFailed(false)
+    try {
+      const parsed = new DOMParser().parseFromString(code, 'image/svg+xml')
+      if (parsed.getElementsByTagName('parsererror').length > 0) throw new Error('svg markup is not well-formed XML')
+      objectUrl = URL.createObjectURL(new Blob([code], { type: 'image/svg+xml' }))
+      setUrl(objectUrl)
+    } catch {
+      setInvalid(true)
+    }
+    return () => { if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl) }
+  }, [code])
+  if (invalid) {
+    return <pre className={css.mdPre} data-lang="svg" data-svg-state="invalid"><code>{code}</code></pre>
+  }
+  if (url === null) {
+    return <div className={css.mdInlineSvg} data-svg-state="loading" />
+  }
+  // A broken <img> (e.g. a foreignObject the image context refuses) falls
+  // back to the raw source, mirroring the file preview's degradation.
+  if (imgFailed) {
+    return <pre className={css.mdPre} data-lang="svg" data-svg-state="img-failed"><code>{code}</code></pre>
+  }
+  return <div className={css.mdInlineSvg} data-svg-state="rendered"><img src={url} alt="svg" loading="lazy" onError={() => { setImgFailed(true) }} /></div>
+}
+
 /** True when a traced path is a markdown source this renderer handles. */
 export function isMarkdownPath(path: string): boolean {
   return /\.(md|markdown|mdx)$/i.test(path)
@@ -219,6 +259,8 @@ type Block =
   | { readonly kind: 'quote'; readonly blocks: readonly Block[] }
   | { readonly kind: 'list'; readonly ordered: boolean; readonly start: number; readonly items: readonly ListItem[] }
   | { readonly kind: 'table'; readonly align: readonly string[]; readonly rows: readonly string[][] }
+  | { readonly kind: 'svg'; readonly text: string }
+  | { readonly kind: 'details'; readonly summary: string; readonly blocks: readonly Block[] }
 
 /** One list item: nested blocks plus the task checkbox state, if any. */
 interface ListItem { readonly blocks: readonly Block[]; readonly task: boolean; readonly checked: boolean }
@@ -367,6 +409,44 @@ export function parseBlocks(src: string): readonly Block[] {
     }
 
     if (HR_RE.test(line)) { blocks.push({ kind: 'hr' }); i += 1; continue }
+
+    // Raw SVG block: an optional <?xml ...?> declaration followed by a line
+    // opening <svg, running to a line containing </svg>. GitHub-style docs
+    // embed diagrams this way. Unclosed markup falls through to the
+    // paragraph path (no silent swallowing).
+    {
+      let s = i
+      if (/^\s*<\?xml\b/.test(lines[s]!)) s += 1
+      if (s < lines.length && /^\s*<svg\b/.test(lines[s]!)) {
+        let j = s
+        while (j < lines.length && !/<\/svg\s*>/.test(lines[j]!)) j += 1
+        if (j < lines.length) {
+          blocks.push({ kind: 'svg', text: lines.slice(i, j + 1).join('\n') })
+          i = j + 1
+          continue
+        }
+      }
+    }
+
+    // <details> wrapper: a line opening <details ...> closed by a line
+    // </details>. The optional first <summary>...</summary> line becomes the
+    // native summary; the remaining inner lines parse recursively (an SVG
+    // diagram under a collapsible heading is the common shape).
+    if (/^\s*<details\b[^>]*>\s*$/.test(line)) {
+      let j = i + 1
+      while (j < lines.length && !/^\s*<\/details>\s*$/.test(lines[j]!)) j += 1
+      if (j < lines.length) {
+        let inner = lines.slice(i + 1, j)
+        let summary = ''
+        if (inner.length > 0) {
+          const sm = inner[0]!.match(/^\s*<summary>([\s\S]*?)<\/summary>\s*$/)
+          if (sm !== null) { summary = sm[1]!.trim(); inner = inner.slice(1) }
+        }
+        blocks.push({ kind: 'details', summary, blocks: parseBlocks(inner.join('\n')) })
+        i = j + 1
+        continue
+      }
+    }
 
     const heading = line.match(HEADING_RE)
     if (heading !== null) {
@@ -739,6 +819,15 @@ function renderBlock(b: Block, key: string, rctx: Rctx): ReactElement {
             </tbody>
           </table>
         </div>
+      )
+    case 'svg':
+      return <InlineSvgBlock key={key} code={b.text} />
+    case 'details':
+      return (
+        <details key={key} className={css.mdDetails}>
+          {b.summary !== '' && <summary className={css.mdDetailsSummary}>{b.summary}</summary>}
+          {b.blocks.map((d, n) => renderBlock(d, key + '-' + String(n), rctx))}
+        </details>
       )
   }
 }

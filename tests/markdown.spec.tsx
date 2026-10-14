@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** markdown: Obsidian-flavored block parsing and reading-mode rendering. */
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MarkdownView, parseBlocks, renderInline, isMarkdownPath } from '../src/client/markdown.tsx'
 
 afterEach(cleanup)
@@ -72,6 +72,28 @@ describe('parseBlocks', () => {
   it('does not treat a closed --- block whose content is prose as frontmatter', () => {
     const blocks = parseBlocks('---\nCorridor verification record text\n---')
     expect(blocks.map((b) => b.kind)).toEqual(['hr', 'para', 'hr'])
+  })
+
+  it('parses a raw <svg> block with an optional <?xml?> declaration', () => {
+    const src = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200">\n  <rect x="30" y="70" width="120" height="60" fill="#4a90d9"/>\n</svg>\n\nafter'
+    const blocks = parseBlocks(src)
+    expect(blocks.map((b) => b.kind)).toEqual(['svg', 'para'])
+    expect(blocks[0]).toMatchObject({ kind: 'svg' })
+    expect((blocks[0] as { text: string }).text).toContain('<rect')
+  })
+
+  it('leaves an unclosed <svg> opener in the paragraph path', () => {
+    const blocks = parseBlocks('<svg xmlns="…">\nno close here')
+    expect(blocks.map((b) => b.kind)).toEqual(['para'])
+  })
+
+  it('parses a <details> wrapper with a summary and a nested svg block', () => {
+    const src = '<details>\n<summary>渲染预览</summary>\n<svg xmlns="http://www.w3.org/2000/svg">\n  <rect x="1" y="1" width="2" height="2"/>\n</svg>\n</details>\n\ntail'
+    const blocks = parseBlocks(src)
+    expect(blocks.map((b) => b.kind)).toEqual(['details', 'para'])
+    const d = blocks[0] as { summary: string; blocks: readonly { kind: string }[] }
+    expect(d.summary).toBe('渲染预览')
+    expect(d.blocks.map((b) => b.kind)).toEqual(['svg'])
   })
 })
 
@@ -192,5 +214,39 @@ describe('MarkdownView', () => {
     render(<MarkdownView src={'![pic](./images/photo.png)'} />)
     expect(screen.getByText('photo.png')).toBeTruthy()
     expect(screen.queryByRole('img')).toBeNull()
+  })
+
+  it('renders a raw svg block inside a details wrapper via a blob <img>', async () => {
+    // jsdom lacks URL.createObjectURL: stub it so the blob <img> path runs.
+    const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:svg-test')
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const src = [
+      '<details>',
+      '<summary>渲染预览</summary>',
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200">',
+      '  <rect x="30" y="70" width="120" height="60" fill="#4a90d9"/>',
+      '</svg>',
+      '</details>',
+    ].join('\n')
+    render(<MarkdownView src={src} />)
+    expect(screen.getByText('渲染预览').tagName).toBe('SUMMARY')
+    await waitFor(() => {
+      const host = document.querySelector('[data-svg-state="rendered"]')
+      expect(host).not.toBeNull()
+      expect(host?.querySelector('img')?.getAttribute('src')).toBe('blob:svg-test')
+    })
+    create.mockRestore()
+    revoke.mockRestore()
+  })
+
+  it('degrades non-well-formed svg markup to a source code block', async () => {
+    // <rect> never closes: XML mode reports a parsererror → source fallback.
+    const src = '<svg xmlns="http://www.w3.org/2000/svg">\n  <rect x="1">\n</svg>'
+    render(<MarkdownView src={src} />)
+    await waitFor(() => {
+      const block = document.querySelector('pre[data-lang="svg"][data-svg-state="invalid"]')
+      expect(block).not.toBeNull()
+      expect(block?.textContent).toContain('<rect')
+    })
   })
 })
