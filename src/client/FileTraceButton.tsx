@@ -31,9 +31,10 @@ export function setCurrentSessionId(id: string): void {
 // Remount-surviving drawer state. The floating trigger lives in the session
 // header, so switching sessions unmounts and re-mounts the whole component;
 // these module-level stores carry the UI state across that remount within one
-// page lifetime (a page refresh intentionally resets them).
-/** Whether the floating drawer was open the last time its trigger unmounted. */
-const floatingOpenStore: { value: boolean } = { value: false }
+// page lifetime (a page refresh intentionally resets them). All entries are
+// keyed by session id: each session keeps its own drawer state.
+/** Whether the session's floating drawer was open at its last unmount. */
+const floatingOpenStore = new Map<string, boolean>()
 /** Last selected op per session (path + callId), restored when the session's
  * conversation re-emits the same op after a session-switch remount. */
 const selectedMemo = new Map<string, { path: string; callId: string }>()
@@ -43,9 +44,19 @@ const stitchMemo = new Map<string, boolean>()
 /** Reset the remount-surviving drawer stores (test isolation: each rendered
  * case simulates a fresh page lifetime). */
 export function resetDrawerRemountStores(): void {
-  floatingOpenStore.value = false
+  floatingOpenStore.clear()
   selectedMemo.clear()
   stitchMemo.clear()
+}
+
+/** Read a per-session persisted value: prefer the session-scoped key, fall
+ * back to the legacy unscoped key once (first open of an older session). */
+const readSessionLS = (key: string, sessionId: string): string | null => {
+  try {
+    const scoped = window.localStorage.getItem(`${key}:${sessionId}`)
+    if (scoped !== null) return scoped
+    return window.localStorage.getItem(key)
+  } catch { return null }
 }
 
 /** Renders the remediation banner once when the drawer subtree throws. */
@@ -350,8 +361,8 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   const groups = useMemo(() => groupByFile(ops), [ops])
   // The floating trigger unmounts with the session header on session switch;
   // reopen it automatically if it was open (module store, page-lifetime only).
-  const [open, setOpen] = useState(embedded || floatingOpenStore.value)
-  useEffect(() => { if (!embedded) floatingOpenStore.value = open }, [open, embedded])
+  const [open, setOpen] = useState(embedded || (floatingOpenStore.get(sessionId) ?? false))
+  useEffect(() => { if (!embedded) floatingOpenStore.set(sessionId, open) }, [open, embedded, sessionId])
   // Update check: newest tag from the public mirror, once per open.
   const [latestTag, setLatestTag] = useState<string | undefined>(undefined)
   // True when the version check could not reach the network (shown in the drawer head).
@@ -406,16 +417,16 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   // Hunk-fold segments expanded by index; default collapsed.
   const [expandedFolds, setExpandedFolds] = useState<ReadonlySet<number>>(new Set())
   // Bottom diff pane height in px; drag the handle to resize (min/max clamp).
-  // Persisted in localStorage so a session-switch remount keeps the split.
+  // Persisted per session in localStorage so a session-switch remount keeps
+  // each session's own split (legacy unscoped key is the first-open fallback).
   const LS_DIFF_HEIGHT = 'dsh-file-trace:diffHeight'
+  const LS_DIFF_HEIGHT_KEY = `${LS_DIFF_HEIGHT}:${sessionId}`
   const [diffHeight, setDiffHeight] = useState<number>(() => {
-    try {
-      const saved = window.localStorage.getItem(LS_DIFF_HEIGHT)
-      if (saved !== null) {
-        const n = Number(saved)
-        if (Number.isFinite(n)) return Math.min(Math.max(n, 140), Math.round(window.innerHeight * 0.85))
-      }
-    } catch { /* storage unavailable */ }
+    const saved = readSessionLS(LS_DIFF_HEIGHT, sessionId)
+    if (saved !== null) {
+      const n = Number(saved)
+      if (Number.isFinite(n)) return Math.min(Math.max(n, 140), Math.round(window.innerHeight * 0.85))
+    }
     return 340
   })
   const diffHeightRef = useRef(diffHeight)
@@ -491,31 +502,34 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   }, [open, t])
 
   // Floating-window geometry (like dsh-minigames): position by header drag,
-  // size by edge drags; persisted in localStorage.
+  // size by edge drags; persisted per session in localStorage (legacy
+  // unscoped keys are the first-open fallback for each session).
   const LS_POS = 'dsh-file-trace:pos'
   const LS_SIZE = 'dsh-file-trace:size'
+  const LS_POS_KEY = `${LS_POS}:${sessionId}`
+  const LS_SIZE_KEY = `${LS_SIZE}:${sessionId}`
   const [winPos, setWinPos] = useState<{ x: number; y: number }>(() => {
-    try {
-      const saved = window.localStorage.getItem(LS_POS)
-      if (saved !== null) {
+    const saved = readSessionLS(LS_POS, sessionId)
+    if (saved !== null) {
+      try {
         const p = JSON.parse(saved) as { x?: unknown; y?: unknown }
         if (typeof p.x === 'number' && Number.isFinite(p.x) && typeof p.y === 'number' && Number.isFinite(p.y)) {
           return { x: Math.min(Math.max(p.x, 8), Math.max(8, window.innerWidth - 300)), y: Math.min(Math.max(p.y, 8), Math.max(8, window.innerHeight - 120)) }
         }
-      }
-    } catch { /* fall through to the default */ }
+      } catch { /* fall through to the default */ }
+    }
     return { x: Math.max(16, window.innerWidth - 576), y: Math.max(16, Math.round(window.innerHeight * 0.12)) }
   })
   const [winSize, setWinSize] = useState<{ w: number; h: number }>(() => {
-    try {
-      const saved = window.localStorage.getItem(LS_SIZE)
-      if (saved !== null) {
+    const saved = readSessionLS(LS_SIZE, sessionId)
+    if (saved !== null) {
+      try {
         const s = JSON.parse(saved) as { w?: unknown; h?: unknown }
         if (typeof s.w === 'number' && Number.isFinite(s.w) && typeof s.h === 'number' && Number.isFinite(s.h)) {
           return { w: Math.min(Math.max(s.w, 360), window.innerWidth - 16), h: Math.min(Math.max(s.h, 200), window.innerHeight - 16) }
         }
-      }
-    } catch { /* fall through to the default */ }
+      } catch { /* fall through to the default */ }
+    }
     return { w: Math.min(560, window.innerWidth - 32), h: Math.min(720, window.innerHeight - 64) }
   })
   const posRef = useRef(winPos)
@@ -529,10 +543,11 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   /** Right-edge docking: released near the right edge, the window snaps into
  * a full-height right sidebar; dragging the header undocks it again. */
   const LS_DOCK = 'dsh-file-trace:dock'
+  const LS_DOCK_KEY = `${LS_DOCK}:${sessionId}`
   const SNAP_PX = 24
   const [docked, setDocked] = useState<boolean>(() => {
     if (embedded) return false
-    try { return window.localStorage.getItem(LS_DOCK) === 'right' } catch { return false }
+    return readSessionLS(LS_DOCK, sessionId) === 'right'
   })
   const dockedRef = useRef(docked)
   dockedRef.current = docked
@@ -569,8 +584,8 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
     if (g === null) return
     setWinPos({ x: g.x, y: g.y })
     setWinSize({ w: g.w, h: g.h })
-    saveWin(LS_POS, { x: g.x, y: g.y })
-    saveWin(LS_SIZE, { w: g.w, h: g.h })
+    saveWin(LS_POS_KEY, { x: g.x, y: g.y })
+    saveWin(LS_SIZE_KEY, { w: g.w, h: g.h })
   }
 
   /** Apply the docked-right geometry: flush to the right edge, full height. */
@@ -589,7 +604,7 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
     e.preventDefault()
     if (dockedRef.current) {
       setDocked(false)
-      saveWin(LS_DOCK, 'free')
+      saveWin(LS_DOCK_KEY, 'free')
     }
     const startX = e.clientX
     const startY = e.clientY
@@ -609,7 +624,7 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
       gestureCommit()
       if (up.clientX >= window.innerWidth - SNAP_PX) {
         setDocked(true)
-        saveWin(LS_DOCK, 'right')
+        saveWin(LS_DOCK_KEY, 'right')
         applyDock()
       }
     }
@@ -704,7 +719,7 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      try { window.localStorage.setItem(LS_DIFF_HEIGHT, String(diffHeightRef.current)) } catch { /* storage unavailable */ }
+      try { window.localStorage.setItem(LS_DIFF_HEIGHT_KEY, String(diffHeightRef.current)) } catch { /* storage unavailable */ }
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)

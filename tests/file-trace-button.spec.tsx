@@ -81,8 +81,45 @@ describe('FileTraceButton', () => {
     expect(second.container.querySelector('[data-file-trace-drawer]')).not.toBeNull()
   })
 
+  it('keeps drawer state independent per session (a closed session stays closed)', () => {
+    const conversation = conversationOf([editNode('e1', 'a.ts', 'x', 'y', 1)])
+    // Session A opens its drawer.
+    const a = render(<FileTraceButton {...propsWith(conversation)} />)
+    fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+    expect(a.container.querySelector('[data-file-trace-drawer]')).not.toBeNull()
+    a.unmount()
+    // Session B (never opened) mounts: its own drawer stays closed...
+    const b = render(<FileTraceButton {...{ ...propsWith(conversation), sessionId: 's-2' }} />)
+    expect(b.container.querySelector('[data-file-trace-drawer]')).toBeNull()
+    b.unmount()
+    // ...and switching back to A reopens A's drawer.
+    const a2 = render(<FileTraceButton {...propsWith(conversation)} />)
+    expect(a2.container.querySelector('[data-file-trace-drawer]')).not.toBeNull()
+  })
+
+  it('scopes the persisted split height per session with legacy fallback', () => {
+    window.localStorage.setItem('dsh-file-trace:diffHeight:s-1', '480')
+    window.localStorage.setItem('dsh-file-trace:diffHeight', '260')
+    try {
+      const conversation = conversationOf([editNode('e1', 'a.ts', 'x', 'y', 1)])
+      // s-1 prefers its own scoped value; s-2 falls back to the legacy key.
+      const one = render(<FileTraceButton {...propsWith(conversation)} />)
+      fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+      fireEvent.click(one.container.querySelector('[data-op-kind="edit"]') as HTMLElement)
+      expect(((one.container.querySelector('[data-file-trace-diff]') as HTMLElement).style.height)).toBe('480px')
+      cleanup()
+      const two = render(<FileTraceButton {...{ ...propsWith(conversation), sessionId: 's-2' }} />)
+      fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+      fireEvent.click(two.container.querySelector('[data-op-kind="edit"]') as HTMLElement)
+      expect(((two.container.querySelector('[data-file-trace-diff]') as HTMLElement).style.height)).toBe('260px')
+    } finally {
+      window.localStorage.removeItem('dsh-file-trace:diffHeight:s-1')
+      window.localStorage.removeItem('dsh-file-trace:diffHeight')
+    }
+  })
+
   it('restores the diff/list split height from localStorage on remount', () => {
-    window.localStorage.setItem('dsh-file-trace:diffHeight', '480')
+    window.localStorage.setItem('dsh-file-trace:diffHeight:s-1', '480')
     try {
       const conversation = conversationOf([editNode('e1', 'a.ts', 'x', 'y', 1)])
       const { container } = render(<FileTraceButton {...propsWith(conversation)} />)
@@ -91,7 +128,7 @@ describe('FileTraceButton', () => {
       const pane = container.querySelector('[data-file-trace-diff]') as HTMLElement
       expect(pane.style.height).toBe('480px')
     } finally {
-      window.localStorage.removeItem('dsh-file-trace:diffHeight')
+      window.localStorage.removeItem('dsh-file-trace:diffHeight:s-1')
     }
   })
 
