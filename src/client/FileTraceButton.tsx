@@ -28,6 +28,26 @@ export function setCurrentSessionId(id: string): void {
   for (const listener of [...currentSessionIdStore.listeners]) listener()
 }
 
+// Remount-surviving drawer state. The floating trigger lives in the session
+// header, so switching sessions unmounts and re-mounts the whole component;
+// these module-level stores carry the UI state across that remount within one
+// page lifetime (a page refresh intentionally resets them).
+/** Whether the floating drawer was open the last time its trigger unmounted. */
+const floatingOpenStore: { value: boolean } = { value: false }
+/** Last selected op per session (path + callId), restored when the session's
+ * conversation re-emits the same op after a session-switch remount. */
+const selectedMemo = new Map<string, { path: string; callId: string }>()
+/** Stitch (拼合分段读取) toggle per session. */
+const stitchMemo = new Map<string, boolean>()
+
+/** Reset the remount-surviving drawer stores (test isolation: each rendered
+ * case simulates a fresh page lifetime). */
+export function resetDrawerRemountStores(): void {
+  floatingOpenStore.value = false
+  selectedMemo.clear()
+  stitchMemo.clear()
+}
+
 /** Renders the remediation banner once when the drawer subtree throws. */
 class DrawerErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; message: string }> {
   override state = { failed: false, message: '' }
@@ -298,7 +318,10 @@ function PresentedPane({ path, sessionId: sessionProp, rendered, t }: { readonly
 }
 
 /** The header trigger button plus its drawer. */
-export function FileTraceButton({ useConversation, t, sessionId, embedded = false }: FileTraceButtonProps) {
+export function FileTraceButton({ useConversation, t, sessionId: sessionProp, embedded = false }: FileTraceButtonProps) {
+  // Memo keys use the prop session id when present, else the module-level
+  // current-session id (same resolution as PresentedPane below).
+  const sessionId = sessionProp !== undefined && sessionProp !== '' ? sessionProp : currentSessionIdStore.value
   // Element-identity equality: with per-node cached extraction (file-ops.ts),
   // ops elements are stable objects, so a streaming delta that settles no new
   // file op reuses the previous array contents and skips this re-render
@@ -310,8 +333,10 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
     return extractFileOps(chat?.legacy.nodes ?? [], chat?.legacy.runningCalls ?? [])
   }, opsEqual)
   // Stitch is user-triggered (拼合分段读取 button in the drawer head): the
-  // merged read replaces that file's segment rows in the list.
-  const [stitchOn, setStitchOn] = useState(false)
+  // merged read replaces that file's segment rows in the list. Survives a
+  // session-switch remount via the per-session module store.
+  const [stitchOn, setStitchOn] = useState(() => stitchMemo.get(sessionId) ?? false)
+  useEffect(() => { stitchMemo.set(sessionId, stitchOn) }, [stitchOn, sessionId])
   const ops = useMemo(() => (stitchOn ? stitchSegmentReads(rawOps) : rawOps), [rawOps, stitchOn])
   const stitchable = useMemo(() => {
     const readsByPath = new Map<string, number>()
@@ -323,7 +348,10 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
     return false
   }, [rawOps])
   const groups = useMemo(() => groupByFile(ops), [ops])
-  const [open, setOpen] = useState(embedded)
+  // The floating trigger unmounts with the session header on session switch;
+  // reopen it automatically if it was open (module store, page-lifetime only).
+  const [open, setOpen] = useState(embedded || floatingOpenStore.value)
+  useEffect(() => { if (!embedded) floatingOpenStore.value = open }, [open, embedded])
   // Update check: newest tag from the public mirror, once per open.
   const [latestTag, setLatestTag] = useState<string | undefined>(undefined)
   // True when the version check could not reach the network (shown in the drawer head).
@@ -331,6 +359,19 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
   const [updating, setUpdating] = useState(false)
   const [updateMsg, setUpdateMsg] = useState<string | null>(null)
   const [selected, setSelected] = useState<{ path: string; op: FileOp } | null>(null)
+  // Restore the session's last selected op after a session-switch remount:
+  // the conversation re-emits the same ops (element-identity extraction), so
+  // the memo's path+callId re-resolves to the live op object.
+  useEffect(() => {
+    if (selected !== null) return
+    const memo = selectedMemo.get(sessionId)
+    if (memo === undefined) return
+    const hit = ops.find(op => op.path === memo.path && op.callId === memo.callId)
+    if (hit !== undefined) setSelected({ path: memo.path, op: hit })
+  }, [selected, ops, sessionId])
+  useEffect(() => {
+    if (selected !== null) selectedMemo.set(sessionId, { path: selected.path, callId: selected.op.callId })
+  }, [selected, sessionId])
   // Markdown reading mode for .md files: replaces the raw/diff pane with a
   // rendered document (read = file content; write/edit = resulting content).
   const [mdReading, setMdReading] = useState(false)
@@ -365,7 +406,20 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
   // Hunk-fold segments expanded by index; default collapsed.
   const [expandedFolds, setExpandedFolds] = useState<ReadonlySet<number>>(new Set())
   // Bottom diff pane height in px; drag the handle to resize (min/max clamp).
-  const [diffHeight, setDiffHeight] = useState(340)
+  // Persisted in localStorage so a session-switch remount keeps the split.
+  const LS_DIFF_HEIGHT = 'dsh-file-trace:diffHeight'
+  const [diffHeight, setDiffHeight] = useState<number>(() => {
+    try {
+      const saved = window.localStorage.getItem(LS_DIFF_HEIGHT)
+      if (saved !== null) {
+        const n = Number(saved)
+        if (Number.isFinite(n)) return Math.min(Math.max(n, 140), Math.round(window.innerHeight * 0.85))
+      }
+    } catch { /* storage unavailable */ }
+    return 340
+  })
+  const diffHeightRef = useRef(diffHeight)
+  diffHeightRef.current = diffHeight
   const diffPaneRef = useRef<HTMLDivElement>(null)
   // Per-selected-op scroll memory for the diff/read pane: switching ops restores
   // that op's own position instead of jumping to the top each time.
@@ -650,6 +704,7 @@ export function FileTraceButton({ useConversation, t, sessionId, embedded = fals
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      try { window.localStorage.setItem(LS_DIFF_HEIGHT, String(diffHeightRef.current)) } catch { /* storage unavailable */ }
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)

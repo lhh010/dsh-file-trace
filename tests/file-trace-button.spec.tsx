@@ -7,10 +7,16 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
-import { FileTraceButton, type FileTraceButtonProps } from '../src/client/FileTraceButton.tsx'
+import { FileTraceButton, resetDrawerRemountStores, type FileTraceButtonProps } from '../src/client/FileTraceButton.tsx'
 import { zh } from '../src/client/locales.ts'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  // Each rendered case simulates a fresh page lifetime: drop the
+  // remount-surviving drawer stores so one case's open drawer cannot leak
+  // into the next case's initial render.
+  resetDrawerRemountStores()
+})
 
 /** One settled tool-result node fixture (edit by default). */
 function toolNode(callId: string, name: string, args: Record<string, unknown>, time: number, isError: boolean, content: unknown[]) {
@@ -61,6 +67,32 @@ describe('FileTraceButton', () => {
     const conversation = conversationOf([editNode('e1', 'a.ts', 'x', 'y', 1)])
     render(<FileTraceButton {...propsWith(conversation)} />)
     expect(screen.getByText('1').textContent).toBe('1')
+  })
+
+  it('keeps the floating drawer open across a session-switch remount', () => {
+    const conversation = conversationOf([editNode('e1', 'a.ts', 'x', 'y', 1)])
+    const first = render(<FileTraceButton {...propsWith(conversation)} />)
+    fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+    expect(first.container.querySelector('[data-file-trace-drawer]')).not.toBeNull()
+    // Session switch: the header (trigger + drawer) unmounts entirely...
+    first.unmount()
+    // ...and switching back mounts a fresh instance, which must reopen.
+    const second = render(<FileTraceButton {...propsWith(conversation)} />)
+    expect(second.container.querySelector('[data-file-trace-drawer]')).not.toBeNull()
+  })
+
+  it('restores the diff/list split height from localStorage on remount', () => {
+    window.localStorage.setItem('dsh-file-trace:diffHeight', '480')
+    try {
+      const conversation = conversationOf([editNode('e1', 'a.ts', 'x', 'y', 1)])
+      const { container } = render(<FileTraceButton {...propsWith(conversation)} />)
+      fireEvent.click(screen.getByRole('button', { name: /文件追踪/ }))
+      fireEvent.click(container.querySelector('[data-op-kind="edit"]') as HTMLElement)
+      const pane = container.querySelector('[data-file-trace-diff]') as HTMLElement
+      expect(pane.style.height).toBe('480px')
+    } finally {
+      window.localStorage.removeItem('dsh-file-trace:diffHeight')
+    }
   })
 
   it('embedded mount renders the drawer statically without a trigger button', () => {
