@@ -82,13 +82,17 @@ export function apply(ctx: ClientContext): void {
       }, 'file-trace: session id sync')
 
       // Host desktop path actions (reveal in file manager / open with the
-      // default local app): the optional remote service carries them on hosts
-      // with a desktop; absent service or headless hosts simply hide the
-      // controls.
-      ctx.effect(() => {
-        setPathActionsRemote(ctx.get('remote'))
-        return () => { setPathActionsRemote(null) }
-      }, 'file-trace: path actions remote')
+      // default local app). `remote.session` is a nested cordis dependency:
+      // reading it without declaring the inject throws, so the optional
+      // feature rides a child fiber — on hosts that never publish the
+      // remote (old DSH, headless) the fiber stays pending and the controls
+      // simply never mount.
+      ctx.inject(['remote', 'remote.session'], sub => {
+        sub.effect(() => {
+          setPathActionsRemote(sub.get('remote'))
+          return () => { setPathActionsRemote(null) }
+        }, 'file-trace: path actions remote')
+      })
 
       ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register(
         { name: 'conversation.session.header.utilities', id: 'file-trace', order: 10, locale: NS },
