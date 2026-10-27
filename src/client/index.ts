@@ -21,6 +21,7 @@ import { registerSidebarTab } from './sidebar-tab.tsx'
 import { startUpdateChip } from './update-chip.ts'
 import { en, zh, type FileTraceKey } from './locales.ts'
 import { applyWithCompat } from './compat.ts'
+import { setPathActionsRemote } from './path-actions.ts'
 
 export type { FileTraceButtonProps } from './FileTraceButton.tsx'
 export type { FileTraceKey } from './locales.ts'
@@ -79,6 +80,15 @@ export function apply(ctx: ClientContext): void {
         const unsubscribe = uiSession.current.subscribe(sync)
         return () => { unsubscribe() }
       }, 'file-trace: session id sync')
+
+      // Host desktop path actions (reveal in file manager / open with the
+      // default local app): the optional remote service carries them on hosts
+      // with a desktop; absent service or headless hosts simply hide the
+      // controls.
+      ctx.effect(() => {
+        setPathActionsRemote(ctx.get('remote'))
+        return () => { setPathActionsRemote(null) }
+      }, 'file-trace: path actions remote')
 
       ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register(
         { name: 'conversation.session.header.utilities', id: 'file-trace', order: 10, locale: NS },

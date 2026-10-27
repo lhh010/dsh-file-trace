@@ -45,6 +45,9 @@ export type FileTraceKey =
   | 'read.stitched'
   | 'stitch.do'
   | 'stitch.on'
+  | 'path.reveal'
+  | 'path.open'
+  | 'path.fail'
 
 export const zh: Record<FileTraceKey, string> = {
   title: '文件追踪',
@@ -92,6 +95,9 @@ export const zh: Record<FileTraceKey, string> = {
   'read.stitched': '已拼合 {count} 段分段读取（第 {range} 行）',
   'stitch.do': '拼合分段读取',
   'stitch.on': '分段已拼合',
+  'path.reveal': '在资源管理器中显示',
+  'path.open': '用本地程序打开',
+  'path.fail': '操作失败',
 }
 
 export const en: Record<FileTraceKey, string> = {
@@ -140,4 +146,7 @@ export const en: Record<FileTraceKey, string> = {
   'read.stitched': 'Stitched {count} segment reads (lines {range})',
   'stitch.do': 'Stitch segment reads',
   'stitch.on': 'Segments stitched',
+  'path.reveal': 'Reveal in file manager',
+  'path.open': 'Open with local app',
+  'path.fail': 'Action failed',
 }

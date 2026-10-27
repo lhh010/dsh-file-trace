@@ -13,6 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { extractFileOps, groupByFile, knownContentBefore, parseReadContent, parseReadLines, stitchSegmentReads, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
 import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
+import { desktopCanOpenPaths, runPathAction } from './path-actions.ts'
 import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import { scanLine, isColored, langOfPath, hasBlockComment, type TokenType, type CodeToken } from './highlight.ts'
 import { MarkdownView, isMarkdownPath, assetUrl } from './markdown.tsx'
@@ -370,6 +371,22 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   const [updating, setUpdating] = useState(false)
   const [updateMsg, setUpdateMsg] = useState<string | null>(null)
   const [selected, setSelected] = useState<{ path: string; op: FileOp } | null>(null)
+  // Host desktop path actions: availability is asked once per page (null =
+  // asking, false = headless host → buttons hidden); one transient failure
+  // message per gesture.
+  const [pathsAvailable, setPathsAvailable] = useState<boolean | null>(null)
+  const [pathMsg, setPathMsg] = useState<string | null>(null)
+  useEffect(() => { void desktopCanOpenPaths().then(setPathsAvailable) }, [])
+  const onRevealPath = (): void => {
+    if (selected === null) return
+    setPathMsg(null)
+    void runPathAction(selected.path, 'reveal').then(ok => { if (!ok) setPathMsg('fail') })
+  }
+  const onOpenPath = (): void => {
+    if (selected === null) return
+    setPathMsg(null)
+    void runPathAction(selected.path, 'open').then(ok => { if (!ok) setPathMsg('fail') })
+  }
   // Restore the session's last selected op after a session-switch remount:
   // the conversation re-emits the same ops (element-identity extraction), so
   // the memo's path+callId re-resolves to the live op object.
@@ -1128,6 +1145,29 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                 )}
                 {viewOp.op?.readStitched !== undefined && (
                   <span className={css.redactBanner} role="status">{t('read.stitched', { range: viewOp.op.readStitched, count: String(viewOp.op.partialSegments ?? 0) })}</span>
+                )}
+                {pathsAvailable === true && (
+                  <>
+                    <button
+                      type="button"
+                      className={css.readModeBtn}
+                      onClick={onRevealPath}
+                      title={t('path.reveal')}
+                    >
+                      {t('path.reveal')}
+                    </button>
+                    <button
+                      type="button"
+                      className={css.readModeBtn}
+                      onClick={onOpenPath}
+                      title={t('path.open')}
+                    >
+                      {t('path.open')}
+                    </button>
+                    {pathMsg !== null && (
+                      <span className={css.redactBanner} role="status">{t('path.fail')}</span>
+                    )}
+                  </>
                 )}
                 <button
                   type="button"
