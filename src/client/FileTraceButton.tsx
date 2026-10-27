@@ -13,7 +13,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { extractFileOps, groupByFile, knownContentBefore, parseReadContent, parseReadLines, stitchSegmentReads, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
 import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
-import { desktopCanOpenPaths, runPathAction } from './path-actions.ts'
+import { desktopCanOpenPaths, runPathAction, listPathApplications, type PathApplication } from './path-actions.ts'
 import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import { scanLine, isColored, langOfPath, hasBlockComment, type TokenType, type CodeToken } from './highlight.ts'
 import { MarkdownView, isMarkdownPath, assetUrl } from './markdown.tsx'
@@ -373,19 +373,39 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   const [selected, setSelected] = useState<{ path: string; op: FileOp } | null>(null)
   // Host desktop path actions: availability is asked once per page (null =
   // asking, false = headless host → buttons hidden); one transient failure
-  // message per gesture.
+  // message per gesture. The open-with menu lists the host's registered
+  // applications for the selected path on demand.
   const [pathsAvailable, setPathsAvailable] = useState<boolean | null>(null)
   const [pathMsg, setPathMsg] = useState<string | null>(null)
+  const [appsMenu, setAppsMenu] = useState<{ list: readonly PathApplication[]; open: boolean } | null>(null)
   useEffect(() => { void desktopCanOpenPaths().then(setPathsAvailable) }, [])
+  useEffect(() => { setAppsMenu(null) }, [selected?.path])
   const onRevealPath = (): void => {
     if (selected === null) return
     setPathMsg(null)
+    setAppsMenu(null)
     void runPathAction(selected.path, 'reveal').then(ok => { if (!ok) setPathMsg('fail') })
   }
   const onOpenPath = (): void => {
     if (selected === null) return
     setPathMsg(null)
+    setAppsMenu(null)
     void runPathAction(selected.path, 'open').then(ok => { if (!ok) setPathMsg('fail') })
+  }
+  const onToggleAppsMenu = (): void => {
+    if (selected === null) return
+    setPathMsg(null)
+    setAppsMenu(prev => {
+      if (prev !== null && prev.open) return { ...prev, open: false }
+      void listPathApplications(selected.path).then(list => setAppsMenu({ list, open: true }))
+      return { list: [], open: true }
+    })
+  }
+  const onOpenWith = (application: string): void => {
+    if (selected === null) return
+    setPathMsg(null)
+    setAppsMenu(null)
+    void runPathAction(selected.path, 'open', application).then(ok => { if (!ok) setPathMsg('fail') })
   }
   // Restore the session's last selected op after a session-switch remount:
   // the conversation re-emits the same ops (element-identity extraction), so
@@ -1156,14 +1176,44 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                     >
                       {t('path.reveal')}
                     </button>
-                    <button
-                      type="button"
-                      className={css.readModeBtn}
-                      onClick={onOpenPath}
-                      title={t('path.open')}
-                    >
-                      {t('path.open')}
-                    </button>
+                    <span className={css.openWithWrap}>
+                      <button
+                        type="button"
+                        className={css.readModeBtn}
+                        onClick={onOpenPath}
+                        title={t('path.open')}
+                      >
+                        {t('path.open')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`${css.readModeBtn} ${css.openWithCaret}`}
+                        onClick={onToggleAppsMenu}
+                        aria-expanded={appsMenu?.open === true}
+                        title={t('path.openWith')}
+                        aria-label={t('path.openWith')}
+                      >
+                        ▾
+                      </button>
+                      {appsMenu?.open === true && (
+                        <div className={css.appsMenu} role="menu">
+                          {appsMenu.list.length === 0 && (
+                            <span className={css.appsMenuEmpty}>{t('path.noApps')}</span>
+                          )}
+                          {appsMenu.list.map(app => (
+                            <button
+                              key={app.id}
+                              type="button"
+                              role="menuitem"
+                              className={css.appsMenuItem}
+                              onClick={() => { onOpenWith(app.id) }}
+                            >
+                              {app.name ?? app.id}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </span>
                     {pathMsg !== null && (
                       <span className={css.redactBanner} role="status">{t('path.fail')}</span>
                     )}

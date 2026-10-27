@@ -47,6 +47,8 @@ export type FileTraceKey =
   | 'stitch.on'
   | 'path.reveal'
   | 'path.open'
+  | 'path.openWith'
+  | 'path.noApps'
   | 'path.fail'
 
 export const zh: Record<FileTraceKey, string> = {
@@ -97,6 +99,8 @@ export const zh: Record<FileTraceKey, string> = {
   'stitch.on': '分段已拼合',
   'path.reveal': '在资源管理器中显示',
   'path.open': '用本地程序打开',
+  'path.openWith': '选择打开方式',
+  'path.noApps': '没有已注册的应用',
   'path.fail': '操作失败',
 }
 
@@ -148,5 +152,7 @@ export const en: Record<FileTraceKey, string> = {
   'stitch.on': 'Segments stitched',
   'path.reveal': 'Reveal in file manager',
   'path.open': 'Open with local app',
+  'path.openWith': 'Choose an application',
+  'path.noApps': 'No registered applications',
   'path.fail': 'Action failed',
 }

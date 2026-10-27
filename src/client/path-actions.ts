@@ -9,13 +9,21 @@
  * side needs no plugin contribution.
  */
 
+/** One registered file handler as the host reports it. */
+export interface PathApplication {
+  readonly id: string
+  readonly name?: string | undefined
+}
+
 /** The slice of the Client Remote the path actions call. */
 export interface PathActionsRemote {
   readonly session: {
     /** Whether the Host can hand a workspace path to a native desktop. */
     canOpenWorkspacePath(): Promise<{ ok: boolean } & Record<string, unknown>>
     /** Open one Host path in its default application, or reveal it in the file manager. */
-    openWorkspacePath(request: { path: string; action?: 'reveal' }, signal?: AbortSignal): Promise<{ ok: boolean } & Record<string, unknown>>
+    openWorkspacePath(request: { path: string; action?: 'reveal'; application?: string }, signal?: AbortSignal): Promise<{ ok: boolean } & Record<string, unknown>>
+    /** Registered file handlers for one path (id + display name). */
+    workspacePathApplications(request: { path: string }, signal?: AbortSignal): Promise<{ ok: boolean; value?: unknown } & Record<string, unknown>>
   }
 }
 
@@ -61,16 +69,37 @@ export function desktopCanOpenPaths(): Promise<boolean> {
  * @param path - the traced file path, as the operation recorded it (relative
  * paths resolve on the host against the workspace).
  * @param action - 'reveal' shows the file selected in the file manager;
- * 'open' hands it to its default local application.
+ * 'open' hands it to its default local application (or a chosen one).
+ * @param application - registered application id for an explicit open.
  * @returns true when the host acknowledged the gesture.
  */
-export async function runPathAction(path: string, action: 'open' | 'reveal'): Promise<boolean> {
+export async function runPathAction(path: string, action: 'open' | 'reveal', application?: string): Promise<boolean> {
   if (remote === null) return false
   try {
-    const request = action === 'reveal' ? { path, action } : { path }
+    const request = action === 'reveal' ? { path, action } : { path, ...(application === undefined ? {} : { application }) }
     return (await remote.session.openWorkspacePath(request)).ok
   } catch {
     // Swallows carrier rejections: report the gesture as failed.
     return false
+  }
+}
+
+/**
+ * List the host's registered applications for one path; a query failure or a
+ * host without the endpoint reads as an empty list.
+ */
+export async function listPathApplications(path: string): Promise<readonly PathApplication[]> {
+  if (remote === null || typeof remote.session.workspacePathApplications !== 'function') return []
+  try {
+    const result = await remote.session.workspacePathApplications({ path })
+    if (!result.ok || !Array.isArray(result.value)) return []
+    const out: PathApplication[] = []
+    for (const item of result.value as Array<Record<string, unknown>>) {
+      if (typeof item?.id === 'string') out.push({ id: item.id, name: typeof item.name === 'string' ? item.name : undefined })
+    }
+    return out
+  } catch {
+    // Swallows carrier rejections: no application menu.
+    return []
   }
 }

@@ -45,8 +45,14 @@
 .opSize { margin-left: auto; color: var(--dsw-alias-label-caption); font-size: 11px; }
 
 .diffPane { border-top: 1px solid var(--dsw-alias-border-l1); display: flex; flex-direction: column; flex: none; min-height: 0; }
-.diffHead { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
-.diffPath { flex: 1; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; word-break: break-all; color: var(--dsw-alias-label-primary); }
+.diffHead { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; padding: 6px 14px; border-bottom: 1px solid var(--dsw-alias-border-l1); }
+/* Narrow panels: the path owns the first line alone (ellipsis instead of the
+ * word-break letter soup); controls wrap onto the following lines. */
+.diffPath { flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--dsw-mono-font, ui-monospace, monospace); font-size: 12px; color: var(--dsw-alias-label-primary); }
+@media (min-width: 560px) {
+  /* Wide panels: path and controls share one line again. */
+  .diffPath { flex: 1 1 auto; }
+}
 .diffKind[data-kind='write'] { color: var(--dsw-alias-state-success-primary); }
 .diffKind[data-kind='edit'] { color: var(--dsw-alias-state-business-primary); }
 
@@ -119,6 +125,14 @@
 .readModeBtn { flex: none; border: 1px solid var(--dsw-alias-border-l1); border-radius: 7px; background: transparent; color: var(--dsw-alias-label-secondary); font: inherit; font-size: 11px; line-height: 20px; padding: 0 8px; cursor: pointer; }
 .readModeBtn:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .readModeBtn[data-on='true'] { border-color: var(--dsw-alias-state-business-primary); color: var(--dsw-alias-state-business-primary); }
+
+/* Open-with control group: the caret button and its popup application menu. */
+.openWithWrap { position: relative; display: inline-flex; flex: none; }
+.openWithCaret { padding: 0 5px; }
+.appsMenu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; min-width: 160px; max-height: 240px; overflow-y: auto; padding: 4px; border: 1px solid var(--dsw-alias-border-l1); border-radius: 8px; background: var(--dsw-alias-bg-layer-2); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+.appsMenuEmpty { display: block; padding: 6px 10px; font-size: 11px; color: var(--dsw-alias-label-caption); }
+.appsMenuItem { display: block; width: 100%; border: 0; border-radius: 6px; background: transparent; color: var(--dsw-alias-label-primary); font: inherit; font-size: 12px; line-height: 24px; padding: 0 10px; text-align: left; cursor: pointer; }
+.appsMenuItem:hover { background: var(--dsw-alias-interactive-bg-hover); }
 
 .htmlFrame { width: 100%; height: 100%; border: 0; background: var(--dsw-alias-bg-base); display: block; }
 .mdPane { flex: 1; min-height: 0; overflow-y: auto; margin-right: 12px; background: var(--dsw-alias-bg-base); }
