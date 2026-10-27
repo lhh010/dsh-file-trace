@@ -6,6 +6,7 @@
  * line-diff view (del red / add green / mod blue via --dsw state tokens).
  */
 import { Component, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -378,6 +379,9 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   const [pathsAvailable, setPathsAvailable] = useState<boolean | null>(null)
   const [pathMsg, setPathMsg] = useState<string | null>(null)
   const [appsMenu, setAppsMenu] = useState<{ list: readonly PathApplication[]; open: boolean } | null>(null)
+  /** Viewport anchor for the fixed-position applications menu. */
+  const [appsMenuPos, setAppsMenuPos] = useState<{ top: number; right: number } | null>(null)
+  const caretRef = useRef<HTMLButtonElement>(null)
   useEffect(() => { void desktopCanOpenPaths().then(setPathsAvailable) }, [])
   useEffect(() => { setAppsMenu(null) }, [selected?.path])
   const onRevealPath = (): void => {
@@ -395,10 +399,18 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   const onToggleAppsMenu = (): void => {
     if (selected === null) return
     setPathMsg(null)
-    setAppsMenu(prev => {
-      if (prev !== null && prev.open) return { ...prev, open: false }
-      void listPathApplications(selected.path).then(list => setAppsMenu({ list, open: true }))
-      return { list: [], open: true }
+    if (appsMenu !== null && appsMenu.open) {
+      setAppsMenu({ ...appsMenu, open: false })
+      return
+    }
+    // Anchor the popup to the caret button (viewport coords): the menu lives
+    // in a position:fixed layer so clipping containers (the diff pane's
+    // overflow) cannot crop it on narrow panels.
+    const rect = caretRef.current?.getBoundingClientRect()
+    setAppsMenuPos(rect === undefined ? null : { top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    setAppsMenu({ list: [], open: true })
+    void listPathApplications(selected.path).then(list => {
+      setAppsMenu(prev => (prev === null || !prev.open) ? prev : { ...prev, list })
     })
   }
   const onOpenWith = (application: string): void => {
@@ -1186,6 +1198,7 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                         {t('path.open')}
                       </button>
                       <button
+                        ref={caretRef}
                         type="button"
                         className={`${css.readModeBtn} ${css.openWithCaret}`}
                         onClick={onToggleAppsMenu}
@@ -1195,8 +1208,12 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                       >
                         ▾
                       </button>
-                      {appsMenu?.open === true && (
-                        <div className={css.appsMenu} role="menu">
+                      {appsMenu?.open === true && appsMenuPos !== null && createPortal(
+                        <div
+                          className={css.appsMenu}
+                          role="menu"
+                          style={{ position: 'fixed', top: `${appsMenuPos.top}px`, right: `${appsMenuPos.right}px` }}
+                        >
                           {appsMenu.list.length === 0 && (
                             <span className={css.appsMenuEmpty}>{t('path.noApps')}</span>
                           )}
@@ -1211,7 +1228,8 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                               {app.name ?? app.id}
                             </button>
                           ))}
-                        </div>
+                        </div>,
+                        document.body,
                       )}
                     </span>
                     {pathMsg !== null && (
