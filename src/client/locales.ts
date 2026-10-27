@@ -48,6 +48,7 @@ export type FileTraceKey =
   | 'path.reveal'
   | 'path.open'
   | 'path.openWith'
+  | 'path.loading'
   | 'path.noApps'
   | 'path.fail'
 
@@ -100,6 +101,7 @@ export const zh: Record<FileTraceKey, string> = {
   'path.reveal': '在资源管理器中显示',
   'path.open': '用本地程序打开',
   'path.openWith': '选择打开方式',
+  'path.loading': '正在获取应用列表…',
   'path.noApps': '没有已注册的应用',
   'path.fail': '操作失败',
 }
@@ -153,6 +155,7 @@ export const en: Record<FileTraceKey, string> = {
   'path.reveal': 'Reveal in file manager',
   'path.open': 'Open with local app',
   'path.openWith': 'Choose an application',
+  'path.loading': 'Loading applications…',
   'path.noApps': 'No registered applications',
   'path.fail': 'Action failed',
 }

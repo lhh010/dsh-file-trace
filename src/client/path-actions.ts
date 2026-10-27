@@ -85,21 +85,50 @@ export async function runPathAction(path: string, action: 'open' | 'reveal', app
 }
 
 /**
- * List the host's registered applications for one path; a query failure or a
- * host without the endpoint reads as an empty list.
+ * Application-list cache keyed by file extension: the host resolves file
+ * associations per type, so same-type paths share one answer. Page-lifetime.
  */
-export async function listPathApplications(path: string): Promise<readonly PathApplication[]> {
-  if (remote === null || typeof remote.session.workspacePathApplications !== 'function') return []
-  try {
-    const result = await remote.session.workspacePathApplications({ path })
-    if (!result.ok || !Array.isArray(result.value)) return []
-    const out: PathApplication[] = []
-    for (const item of result.value as Array<Record<string, unknown>>) {
-      if (typeof item?.id === 'string') out.push({ id: item.id, name: typeof item.name === 'string' ? item.name : undefined })
+const appsCache = new Map<string, Promise<readonly PathApplication[]>>()
+
+/** Cache key for a path: its lowercase extension, or '' when none. */
+function appsCacheKey(path: string): string {
+  const dot = path.lastIndexOf('.')
+  const slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
+  return dot > slash ? path.slice(dot).toLowerCase() : ''
+}
+
+/**
+ * List the host's registered applications for one path; a query failure or a
+ * host without the endpoint reads as an empty list. Results cache per file
+ * extension, so opening the menu again is instant.
+ */
+export function listPathApplications(path: string): Promise<readonly PathApplication[]> {
+  const key = appsCacheKey(path)
+  const hit = appsCache.get(key)
+  if (hit !== undefined) return hit
+  const query = (async (): Promise<readonly PathApplication[]> => {
+    if (remote === null || typeof remote.session.workspacePathApplications !== 'function') return []
+    try {
+      const result = await remote.session.workspacePathApplications({ path })
+      if (!result.ok || !Array.isArray(result.value)) return []
+      const out: PathApplication[] = []
+      for (const item of result.value as Array<Record<string, unknown>>) {
+        if (typeof item?.id === 'string') out.push({ id: item.id, name: typeof item.name === 'string' ? item.name : undefined })
+      }
+      return out
+    } catch {
+      // Swallows carrier rejections: no application menu.
+      return []
     }
-    return out
-  } catch {
-    // Swallows carrier rejections: no application menu.
-    return []
-  }
+  })()
+  appsCache.set(key, query)
+  return query
+}
+
+/**
+ * Warm the application-list cache for a path (fire-and-forget): called when a
+ * file is selected so the menu opens without the host round-trip.
+ */
+export function preloadPathApplications(path: string): void {
+  void listPathApplications(path).catch(() => { /* cache miss reads as empty */ })
 }

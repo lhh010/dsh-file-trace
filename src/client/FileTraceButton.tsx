@@ -14,7 +14,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { extractFileOps, groupByFile, knownContentBefore, parseReadContent, parseReadLines, stitchSegmentReads, type FileOp } from './file-ops.ts'
 import { renderCompatBanner } from './compat.ts'
 import { PLUGIN_VERSION, fetchLatestTag, compareSemver, runUpdate, updatePrompt } from './update-check.ts'
-import { desktopCanOpenPaths, runPathAction, listPathApplications, type PathApplication } from './path-actions.ts'
+import { desktopCanOpenPaths, runPathAction, listPathApplications, preloadPathApplications, type PathApplication } from './path-actions.ts'
 import { diffLines, formatBytes, buildDiffSegments, diffInline, coalesceInline, MIN_FOLD, type DiffRow, type InlineDiff } from './diff.ts'
 import { scanLine, isColored, langOfPath, hasBlockComment, type TokenType, type CodeToken } from './highlight.ts'
 import { MarkdownView, isMarkdownPath, assetUrl } from './markdown.tsx'
@@ -378,10 +378,15 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
   // applications for the selected path on demand.
   const [pathsAvailable, setPathsAvailable] = useState<boolean | null>(null)
   const [pathMsg, setPathMsg] = useState<string | null>(null)
-  const [appsMenu, setAppsMenu] = useState<{ list: readonly PathApplication[]; open: boolean } | null>(null)
+  const [appsMenu, setAppsMenu] = useState<{ list: readonly PathApplication[]; open: boolean; loaded: boolean } | null>(null)
   /** Viewport anchor for the fixed-position applications menu. */
   const [appsMenuPos, setAppsMenuPos] = useState<{ top: number; right: number } | null>(null)
   const caretRef = useRef<HTMLButtonElement>(null)
+  // Warm the per-extension application cache when a file is selected, so the
+  // first menu open usually skips the host round-trip entirely.
+  useEffect(() => {
+    if (selected !== null && pathsAvailable === true) preloadPathApplications(selected.path)
+  }, [selected, pathsAvailable])
   useEffect(() => { void desktopCanOpenPaths().then(setPathsAvailable) }, [])
   useEffect(() => { setAppsMenu(null) }, [selected?.path])
   const onRevealPath = (): void => {
@@ -405,12 +410,13 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
     }
     // Anchor the popup to the caret button (viewport coords): the menu lives
     // in a position:fixed layer so clipping containers (the diff pane's
-    // overflow) cannot crop it on narrow panels.
+    // overflow) cannot crop it on narrow panels. The menu opens AT ONCE with
+    // a loading row; the host answer (or the warm cache) fills it in.
     const rect = caretRef.current?.getBoundingClientRect()
     setAppsMenuPos(rect === undefined ? null : { top: rect.bottom + 4, right: window.innerWidth - rect.right })
-    setAppsMenu({ list: [], open: true })
+    setAppsMenu({ list: [], open: true, loaded: false })
     void listPathApplications(selected.path).then(list => {
-      setAppsMenu(prev => (prev === null || !prev.open) ? prev : { ...prev, list })
+      setAppsMenu(prev => (prev === null || !prev.open) ? prev : { ...prev, list, loaded: true })
     })
   }
   const onOpenWith = (application: string): void => {
@@ -1214,7 +1220,10 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                           role="menu"
                           style={{ position: 'fixed', top: `${appsMenuPos.top}px`, right: `${appsMenuPos.right}px` }}
                         >
-                          {appsMenu.list.length === 0 && (
+                          {!appsMenu.loaded && (
+                            <span className={css.appsMenuEmpty}>{t('path.loading')}</span>
+                          )}
+                          {appsMenu.loaded && appsMenu.list.length === 0 && (
                             <span className={css.appsMenuEmpty}>{t('path.noApps')}</span>
                           )}
                           {appsMenu.list.map(app => (
