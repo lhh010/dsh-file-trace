@@ -1310,7 +1310,18 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                     {svgReading ? t('svg.raw') : t('svg.render')}
                   </button>
                 )}
-                <button type="button" className={css.close} onClick={() => { setSelected(null) }}>×</button>
+                <button
+                  type="button"
+                  className={css.close}
+                  title={t('close')}
+                  onClick={() => {
+                    // Clear the per-session selection memo too, or the
+                    // restore effect immediately re-opens this detail (the
+                    // button "bounced back" instead of closing).
+                    selectedMemo.delete(sessionId)
+                    setSelected(null)
+                  }}
+                >×</button>
               </div>
               {svgReading && isSvgPath(selected.path) && svgSrc === undefined
                 ? (
