@@ -1263,9 +1263,9 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                     className={css.readModeBtn}
                     data-on={(selected.op.presentOnly === true || selected.op.viaCode === true ? presentReading : mdReading) ? 'true' : undefined}
                     onClick={() => { if (selected.op.presentOnly === true || selected.op.viaCode === true) setPresentReading(prev => !prev); else setMdReading(prev => !prev) }}
-                    title={(selected.op.presentOnly === true || selected.op.viaCode === true ? presentReading : mdReading) ? t('md.raw') : t('md.read')}
+                    title={(selected.op.presentOnly === true || selected.op.viaCode === true ? presentReading : mdReading) ? t('md.read') : t('md.raw')}
                   >
-                    {(selected.op.presentOnly === true || selected.op.viaCode === true ? presentReading : mdReading) ? t('md.raw') : t('md.read')}
+                    {(selected.op.presentOnly === true || selected.op.viaCode === true ? presentReading : mdReading) ? t('md.read') : t('md.raw')}
                   </button>
                 )}
                 {isHtmlPath(selected.path) && !selected.op.isError && (
