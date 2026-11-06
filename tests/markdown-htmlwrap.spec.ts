@@ -31,3 +31,40 @@ describe('markdown htmlwrap blocks', () => {
     expect(blocks[0]!.kind).toBe('para')
   })
 })
+
+import { renderInline } from '../src/client/markdown.tsx'
+import { isValidElement } from 'react'
+
+describe('renderEmbed debug', () => {
+  it('renders an <img> tag with relative src as an img element (not file chip)', () => {
+    const nodes = renderInline('<img src="./resources/demo.jpg" height="300">', 'dbg', { baseDir: 'homework', sessionId: 's1' })
+    const imgNode = nodes.find((n) => isValidElement(n))
+    expect(imgNode).toBeDefined()
+    if (isValidElement(imgNode)) {
+      // htmlwrap → para → inline: the img element type is 'img'
+      expect(imgNode.type).toBe('img')
+      expect(String(imgNode.props.src)).toContain('session=s1')
+      expect(String(imgNode.props.src)).toContain('homework%2Fresources%2Fdemo.jpg')
+    }
+  })
+  it('falls back to file chip when baseDir is undefined', () => {
+    const nodes = renderInline('<img src="./resources/demo.jpg">', 'dbg2', {})
+    const el = nodes.find((n) => isValidElement(n))
+    if (isValidElement(el)) {
+      expect(el.type).not.toBe('img')
+    }
+  })
+})
+
+describe('html comments', () => {
+  it('renders <!-- ... --> as nothing', () => {
+    const nodes = renderInline('before <!-- ![image](x.png) --> after', 'cm')
+    const text = nodes.map((n) => (typeof n === 'string' ? n : '')).join('')
+    expect(text).toBe('before  after')
+  })
+  it('an unterminated comment stays literal', () => {
+    const nodes = renderInline('a <!-- no close', 'cm2')
+    const text = nodes.map((n) => (typeof n === 'string' ? n : '')).join('')
+    expect(text).toBe('a <!-- no close')
+  })
+})

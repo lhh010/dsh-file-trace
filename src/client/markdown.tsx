@@ -732,6 +732,15 @@ export function renderInline(text: string, keyBase = 'i', rctx: Rctx = {}): read
       pos += m[0].length
       continue
     }
+    // HTML comment <!-- ... -->: renders nothing (markdown comments
+    // are invisible; they often wrap commented-out image refs).
+    if (ch === '<' && rest.startsWith('<!--')) {
+      const end = text.indexOf('-->', pos + 4)
+      if (end !== -1) {
+        pos = end + 3
+        continue
+      }
+    }
     // Raw <img> tag: keep only src/width/alt.
     if (ch === '<') {
       m = rest.match(/^<img\s[^>]*\/?>/i)
