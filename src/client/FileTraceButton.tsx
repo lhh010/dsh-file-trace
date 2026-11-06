@@ -1347,7 +1347,7 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                     </div>
                   </div>
                 )
-                : selected.op.presentOnly === true
+                : selected.op.presentOnly === true || selected.op.viaCode === true
                   ? (
                     <PresentedPane path={selected.path} sessionId={sessionId} rendered={presentReading} t={t} />
                   )
