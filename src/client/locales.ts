@@ -8,6 +8,8 @@ export type FileTraceKey =
   | 'ops.read'
   | 'ops.write'
   | 'ops.edit'
+  | 'ops.codeRead'
+  | 'ops.codeWrite'
   | 'running'
   | 'error'
   | 'diff.old'
@@ -61,6 +63,8 @@ export const zh: Record<FileTraceKey, string> = {
   'ops.read': '读取',
   'ops.write': '写入',
   'ops.edit': '编辑',
+  'ops.codeRead': '代码读取',
+  'ops.codeWrite': '代码写入',
   running: '执行中',
   error: '出错',
   'diff.old': '旧',
@@ -115,6 +119,8 @@ export const en: Record<FileTraceKey, string> = {
   'ops.read': 'Read',
   'ops.write': 'Write',
   'ops.edit': 'Edit',
+  'ops.codeRead': 'Code read',
+  'ops.codeWrite': 'Code write',
   running: 'running',
   error: 'error',
   'diff.old': 'old',

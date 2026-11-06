@@ -1155,7 +1155,7 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                     data-op-error={op.isError ? 'true' : undefined}
                     onClick={() => { setSelected({ path, op }) }}
                   >
-                    <span className={css.opKind} data-kind={op.kind}>{t(`ops.${op.kind}` as never)}</span>
+                    <span className={css.opKind} data-kind={op.kind} data-via-code={op.viaCode === true ? 'true' : undefined}>{t((op.viaCode === true ? (op.kind === 'read' ? 'ops.codeRead' : 'ops.codeWrite') : `ops.${op.kind}`) as never)}</span>
                     <span className={css.opTime}>{new Date(op.time).toLocaleTimeString()}</span>
                     {op.running && <span className={css.opFlag}>{t('running')}</span>}
                     {op.isError && <span className={css.opFlagError}>{t('error')}</span>}

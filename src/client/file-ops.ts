@@ -49,12 +49,72 @@ export interface FileOp {
   readonly partialSegments?: number
   /** Present-tool delivery: path declared without inline content (the file was written by code). */
   readonly presentOnly?: boolean
+  /** True when the op was synthesized from direct fs calls in executed code
+   * (readFileSync/writeFileSync in run_code payloads) rather than a real
+   * file tool call — the UI labels these differently and shows no payload. */
+  readonly viaCode?: boolean
 }
 
 /** Tool names mapped to each op kind; unknown names are ignored. */
 const READ_TOOLS = new Set(['read', 'view', 'see'])
 const WRITE_TOOLS = new Set(['write', 'create', 'present'])
 const EDIT_TOOLS = new Set(['edit', 'str_replace', 'str-replace-editor', 'multi-edit'])
+/** Code-execution tool names whose payloads may embed direct fs calls. */
+const CODE_TOOLS = new Set(['run_code', 'pwsh', 'bash', 'shell', 'execute_code', 'python'])
+
+/** Direct fs read call patterns in executed code (JS/TS string-literal paths). */
+const CODE_READ_RE = /(?:readFileSync|readFile|openSync|createReadStream)\s*\(\s*['"]([^'"]{2,})['"]/g
+/** Direct fs write call patterns in executed code. */
+const CODE_WRITE_RE = /(?:writeFileSync|writeFile|createWriteStream|appendFileSync|rmSync|unlinkSync|mkdirSync|copyFileSync|renameSync)\s*\(\s*['"]([^'"]{2,})['"]/g
+/** PowerShell file cmdlet patterns. */
+const PS_READ_RE = /(?:Get-Content|gc|cat)\s+(?:-Path\s+)?['"]?([^'"\r\n|;]{2,}?)['"]?(?=\s|$|;|\|)/g
+const PS_WRITE_RE = /(?:Set-Content|sc|Out-File|Add-Content)\s+(?:-Path\s+)?['"]?([^'"\r\n|;]{2,}?)['"]?(?=\s|$|;|\|)/g
+
+/**
+ * Extract synthetic file ops from a code-execution tool's payload: direct
+ * fs calls (readFileSync/writeFileSync/…) and PowerShell file cmdlets with
+ * string-literal paths. Best-effort — dynamic paths (variables, template
+ * literals) are invisible to this scan and simply produce no op.
+ * @param argsRaw - the tool call's raw arguments JSON.
+ * @param callId - the parent call id (suffix distinguishes synthetic ops).
+ * @param time - the call time.
+ * @returns synthetic ops (empty when the payload references no files).
+ */
+function codeOpsOf(argsRaw: string, callId: string, time: number, isError: boolean): FileOp[] {
+  const args = parseArgs(argsRaw)
+  // The code body lives in different fields per tool; scan the most common ones.
+  const candidates: string[] = []
+  for (const key of ['code', 'command', 'script', 'body', 'prompt']) {
+    const v = args[key]
+    if (typeof v === 'string' && v.length > 0) candidates.push(v)
+  }
+  if (candidates.length === 0) return []
+  const text = candidates.join('\n')
+  const out: FileOp[] = []
+  const seen = new Set<string>()
+  const push = (path: string, kind: FileOpKind, suffix: string): void => {
+    // Skip non-path-looking strings (URLs, bare option flags, node: protocol).
+    if (/^(https?:|node:|data:)/.test(path) || path.startsWith('-')) return
+    const dedupe = kind + ':' + path
+    if (seen.has(dedupe)) return
+    seen.add(dedupe)
+    out.push({ callId: callId + ':' + suffix + ':' + String(out.length), kind, path, time, running: false, isError, viaCode: true })
+  }
+  let n = 0
+  for (const re of [CODE_READ_RE, PS_READ_RE]) {
+    re.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) push(m[1]!.trim(), 'read', 'c' + String(n))
+    n += 1
+  }
+  for (const re of [CODE_WRITE_RE, PS_WRITE_RE]) {
+    re.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = re.exec(text)) !== null) push(m[1]!.trim(), 'write', 'c' + String(n))
+    n += 1
+  }
+  return out
+}
 
 /** Classify one tool name; undefined when the tool touches no file. */
 function kindOf(name: string): FileOpKind | undefined {
@@ -239,7 +299,17 @@ function computeOwnOps(block: RunningToolCall | ToolResultNode): readonly FileOp
     return presentOpsOf(args, base)
   }
   const op = 'call' in block ? opOfResult(block) : opOfRunning(block)
-  return op === undefined ? [] : [op]
+  if (op !== undefined) return [op]
+  // Code-execution tools with no own file op: scan the payload for direct
+  // fs calls (readFileSync etc.) and synthesize labeled ops for them.
+  const name = 'call' in block ? block.call?.name : block.name
+  if (name !== undefined && CODE_TOOLS.has(name)) {
+    const argsRaw = 'call' in block ? (block.call?.argsRaw ?? '') : block.argsRaw
+    if (argsRaw !== '') {
+      return codeOpsOf(argsRaw, block.callId, 'call' in block ? (block.callTime ?? block.time) : block.time, 'call' in block ? block.isError : false)
+    }
+  }
+  return []
 }
 
 /** Recursively collect file operations from a block list (parent or descendant). */
