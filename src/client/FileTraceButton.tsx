@@ -313,10 +313,12 @@ function PresentedPane({ path, sessionId: sessionProp, rendered, t }: { readonly
       .catch(() => { if (!controller.signal.aborted) setState({ kind: 'error' }) })
     return () => { controller.abort() }
   }, [path, sessionProp])
+  const sessionId = sessionProp !== undefined && sessionProp !== '' ? sessionProp : currentSessionIdStore.value
   if (state.kind === 'loading') return <div className={css.mdPane} data-file-trace-present-loading>{t('present.loading')}</div>
   if (state.kind === 'error') return <div className={css.mdPane} data-file-trace-present-error role="alert">{t('present.missing')}</div>
   if (rendered && isMarkdownPath(path)) {
-    return <div className={css.readContent} data-file-trace-present><MarkdownView src={state.text} baseDir={path} /></div>
+    const dir = path.replace(/[\\/][^\\/]*$/, '')
+    return <div className={css.readContent} data-file-trace-present><MarkdownView src={state.text} baseDir={dir} sessionId={sessionId} /></div>
   }
   return (
     <div className={css.readContent} data-file-trace-present>
@@ -1352,7 +1354,7 @@ export function FileTraceButton({ useConversation, t, sessionId: sessionProp, em
                   : mdReading && isMarkdownPath(selected.path)
                   ? (
                     <div className={css.mdPane} data-file-trace-md-pane ref={scrollPaneRef} onScroll={(e) => { scrollMemoryRef.current.set(selectedOp?.callId ?? '', e.currentTarget.scrollTop) }}>
-                      <MarkdownView src={readingSrc} baseDir={selected.path.replace(/[\\/][^\\/]*$/, '')} />
+                      <MarkdownView src={readingSrc} baseDir={selected.path.replace(/[\\/][^\\/]*$/, '')} sessionId={sessionId} />
                     </div>
                   )
                   : htmlReading && isHtmlPath(selected.path) && readingSrc !== ''

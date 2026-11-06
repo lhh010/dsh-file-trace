@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   setPathActionsRemote, runPathAction, listPathApplications, preloadPathApplications,
+  type PathActionsRemote,
 } from '../src/client/path-actions.ts'
 
 /**

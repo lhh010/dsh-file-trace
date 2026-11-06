@@ -16,6 +16,10 @@ import css from './FileTrace.module.css'
 interface Rctx {
   /** Directory of the traced .md file, for resolving relative image paths. */
   readonly baseDir?: string
+  /** Owning session id: appended to the asset URL for workspace-relative
+   * image paths so the host endpoint can resolve them against the
+   * session's working directory. */
+  readonly sessionId?: string
   /** Footnote id -> display number (assigned in definition order). */
   readonly footnotes?: ReadonlyMap<string, number>
 }
@@ -236,9 +240,13 @@ function isLoadableImage(url: string): boolean {
  *  <img> context, where its scripts never execute). */
 const LOCAL_IMAGE_RE = /\.(png|jpe?g|gif|webp|bmp|avif|ico|svg)$/i
 
-/** Host route that streams a whitelisted local file by absolute path. */
-export function assetUrl(abs: string): string {
-  return '/dsh-file-trace/asset?path=' + encodeURIComponent(abs.replace(/\\/g, '/'))
+/** Host route that streams a whitelisted local file by absolute or
+ * session-resolved path. */
+export function assetUrl(abs: string, sessionId?: string): string {
+  const base = '/dsh-file-trace/asset?path=' + encodeURIComponent(abs.replace(/\\/g, '/'))
+  return sessionId !== undefined && sessionId !== ''
+    ? base + '&session=' + encodeURIComponent(sessionId)
+    : base
 }
 
 /** Resolve one embed target against the traced file's directory. */
@@ -590,7 +598,11 @@ function renderEmbed(target: string, alt: string, key: string, rctx: Rctx, width
   if (LOCAL_IMAGE_RE.test(target)) {
     const abs = resolveLocal(target, rctx.baseDir)
     if (abs !== undefined) {
-      return <img key={key} src={assetUrl(abs)} alt={alt || name} className={css.mdImg} loading="lazy" style={width !== undefined ? { width: Number(width) || undefined } : undefined} />
+      // 相对路径（工作区相对）带 session 参数让宿主端点解析到会话
+      // 工作目录；绝对路径不需要。
+      const isAbsPath = /^([a-z]:[\/]|\\\\|\/)/i.test(abs)
+      const url = isAbsPath ? assetUrl(abs) : assetUrl(abs, rctx.sessionId)
+      return <img key={key} src={url} alt={alt || name} className={css.mdImg} loading="lazy" style={width !== undefined ? { width: Number(width) || undefined } : undefined} />
     }
   }
   return <span key={key} className={css.mdFileChip} title={target}><span aria-hidden>🗎</span> {name}</span>
@@ -833,14 +845,14 @@ function renderBlock(b: Block, key: string, rctx: Rctx): ReactElement {
 }
 
 /** Reading-mode view of one markdown document. */
-export function MarkdownView({ src, baseDir }: { readonly src: string; readonly baseDir?: string }): ReactElement {
+export function MarkdownView({ src, baseDir, sessionId }: { readonly src: string; readonly baseDir?: string; readonly sessionId?: string }): ReactElement {
   const { blocks, footnotes } = useMemo(() => {
     const set = extractFootnotes(src)
     const map = new Map<string, number>()
     set.ids.forEach((id, n) => { map.set(id, n + 1) })
     return { blocks: parseBlocks(set.body), footnotes: { set, map } }
   }, [src])
-  const rctx: Rctx = { ...(baseDir === undefined ? {} : { baseDir }), footnotes: footnotes.map }
+  const rctx: Rctx = { ...(baseDir === undefined ? {} : { baseDir }), ...(sessionId === undefined || sessionId === '' ? {} : { sessionId }), footnotes: footnotes.map }
   return (
     <div className={css.mdBody} data-file-trace-md>
       {blocks.map((b, i) => renderBlock(b, String(i), rctx))}
