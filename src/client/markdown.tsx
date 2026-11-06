@@ -269,6 +269,7 @@ type Block =
   | { readonly kind: 'table'; readonly align: readonly string[]; readonly rows: readonly string[][] }
   | { readonly kind: 'svg'; readonly text: string }
   | { readonly kind: 'details'; readonly summary: string; readonly blocks: readonly Block[] }
+  | { readonly kind: 'htmlwrap'; readonly align?: string; readonly blocks: readonly Block[] }
 
 /** One list item: nested blocks plus the task checkbox state, if any. */
 interface ListItem { readonly blocks: readonly Block[]; readonly task: boolean; readonly checked: boolean }
@@ -430,6 +431,30 @@ export function parseBlocks(src: string): readonly Block[] {
         while (j < lines.length && !/<\/svg\s*>/.test(lines[j]!)) j += 1
         if (j < lines.length) {
           blocks.push({ kind: 'svg', text: lines.slice(i, j + 1).join('\n') })
+          i = j + 1
+          continue
+        }
+      }
+    }
+
+    // HTML wrapper block: a line opening <div ...> or <p ...> (often with
+    // align="center") closed by the matching </div> or </p>. The inner lines
+    // parse recursively as markdown (an <img> inside becomes a real image;
+    // text renders normally); the wrapper contributes alignment only. GitHub
+    // README files embed centered figures this way.
+    {
+      const hm = line.match(/^\s*<(div|p|center)\b[^>]*>\s*$/i)
+      if (hm !== null) {
+        const tag = hm[1]!.toLowerCase()
+        const close = new RegExp('^\\s*</' + tag + '\\s*>\\s*$', 'i')
+        let j = i + 1
+        while (j < lines.length && !close.test(lines[j]!)) j += 1
+        if (j < lines.length) {
+          const alignMatch = hm[0].match(/align\s*=\s*["']?(center|left|right)/i)
+          const align = alignMatch?.[1]?.toLowerCase()
+          blocks.push(align === undefined
+            ? { kind: 'htmlwrap', blocks: parseBlocks(lines.slice(i + 1, j).join('\n')) }
+            : { kind: 'htmlwrap', align, blocks: parseBlocks(lines.slice(i + 1, j).join('\n')) })
           i = j + 1
           continue
         }
@@ -840,6 +865,12 @@ function renderBlock(b: Block, key: string, rctx: Rctx): ReactElement {
           {b.summary !== '' && <summary className={css.mdDetailsSummary}>{b.summary}</summary>}
           {b.blocks.map((d, n) => renderBlock(d, key + '-' + String(n), rctx))}
         </details>
+      )
+    case 'htmlwrap':
+      return (
+        <div key={key} className={css.mdBody} style={b.align === 'center' ? { textAlign: 'center' } : undefined}>
+          {b.blocks.map((d, n) => renderBlock(d, key + '-' + String(n), rctx))}
+        </div>
       )
   }
 }
