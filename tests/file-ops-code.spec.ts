@@ -46,3 +46,18 @@ describe('code-op extraction', () => {
     expect(ops).toHaveLength(0)
   })
 })
+
+describe('code-op dynamic path rejection', () => {
+  it('rejects concatenated base-dir fragments (readFileSync("E:/base/" + p))', () => {
+    const ops = extractFileOps([codeNode('const c = readFileSync("E:/deepseek-harness/" + p + "/compatibility.json", "utf8")')], [])
+    expect(ops).toHaveLength(0)
+  })
+  it('rejects directory-prefix literals ending in a separator', () => {
+    const ops = extractFileOps([codeNode("readdirSync('E:/dir/')")], [])
+    expect(ops).toHaveLength(0)
+  })
+  it('still accepts complete literal paths', () => {
+    const ops = extractFileOps([codeNode("readFileSync('E:/dir/a.json')")], [])
+    expect(ops).toHaveLength(1)
+  })
+})

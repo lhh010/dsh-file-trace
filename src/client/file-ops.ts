@@ -63,9 +63,9 @@ const EDIT_TOOLS = new Set(['edit', 'str_replace', 'str-replace-editor', 'multi-
 const CODE_TOOLS = new Set(['run_code', 'pwsh', 'bash', 'shell', 'execute_code', 'python'])
 
 /** Direct fs read call patterns in executed code (JS/TS string-literal paths). */
-const CODE_READ_RE = /(?:readFileSync|readFile|openSync|createReadStream)\s*\(\s*['"]([^'"]{2,})['"]/g
+const CODE_READ_RE = /(?:readFileSync|readFile|openSync|createReadStream)\s*\(\s*['"]([^'"]{2,}?)['"](?!\s*\+)/g
 /** Direct fs write call patterns in executed code. */
-const CODE_WRITE_RE = /(?:writeFileSync|writeFile|createWriteStream|appendFileSync|rmSync|unlinkSync|mkdirSync|copyFileSync|renameSync)\s*\(\s*['"]([^'"]{2,})['"]/g
+const CODE_WRITE_RE = /(?:writeFileSync|writeFile|createWriteStream|appendFileSync|rmSync|unlinkSync|mkdirSync|copyFileSync|renameSync)\s*\(\s*['"]([^'"]{2,}?)['"](?!\s*\+)/g
 /** PowerShell file cmdlet patterns. */
 const PS_READ_RE = /(?:Get-Content|gc|cat)\s+(?:-Path\s+)?['"]?([^'"\r\n|;]{2,}?)['"]?(?=\s|$|;|\|)/g
 const PS_WRITE_RE = /(?:Set-Content|sc|Out-File|Add-Content)\s+(?:-Path\s+)?['"]?([^'"\r\n|;]{2,}?)['"]?(?=\s|$|;|\|)/g
@@ -93,8 +93,11 @@ function codeOpsOf(argsRaw: string, callId: string, time: number, isError: boole
   const out: FileOp[] = []
   const seen = new Set<string>()
   const push = (path: string, kind: FileOpKind, suffix: string): void => {
-    // Skip non-path-looking strings (URLs, bare option flags, node: protocol).
+    // Skip non-path-looking strings (URLs, bare option flags, node: protocol)
+    // and directory prefixes ending in a separator (dynamic concatenation
+    // fragments like readFileSync('E:/base/' + name) are not complete paths).
     if (/^(https?:|node:|data:)/.test(path) || path.startsWith('-')) return
+    if (/[\\/]$/.test(path)) return
     const dedupe = kind + ':' + path
     if (seen.has(dedupe)) return
     seen.add(dedupe)
