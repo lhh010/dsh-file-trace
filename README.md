@@ -87,6 +87,14 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
+| `v0.4.3` | 与上一版相同 | 声明支持 dsh-v0.2.2-rc.1（舰队升级实机验证，零适配改动） |
+| `v0.4.2` | 与上一版相同 | 声明支持 dsh-v0.2.2-alpha.3（舰队契约巡检，零适配改动） |
+| `v0.4.1` | 与上一版相同 | 声明支持 dsh-v0.2.2-alpha.2（契约验证零适配：全部 slot/服务/remote API 存活） |
+| `v0.4.0` | 与上一版相同 | **文件操作直达系统**：「在资源管理器中显示」「用本地程序打开」——追踪面板每条文件操作可一键唤起系统文件管理器/默认应用（经宿主 Session Remote 的 canOpenWorkspacePath/openWorkspacePath 契约，无桌面宿主自动降级隐藏） |
+| `v0.3.37` | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.4（同步发版，零插件面差异） |
+| `v0.3.36` | 与上一版相同 | 声明式兼容 0.2.1-rc.2 / 0.2.1-rc.3（并补登此前功能发版的版本行） |
+| `v0.3.35` | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，零适配改动） |
+| `v0.3.34` | 与上一版相同 | **每个会话的文件追踪抽屉状态独立**：多会话切换时各自的展开/选中/滚动位置互不干扰 |
 | `v0.4.5`（默认） | 与上一版相同 | **代码执行文件追踪**：run_code / pwsh 等代码执行工具载荷中的直接 fs 调用（readFileSync / writeFileSync / Get-Content / Set-Content 等字符串字面量路径）也进入文件追踪面板，标注为「代码读取」「代码写入」（Code read / Code write）与工具操作区分；启发式扫描，动态路径不可见；代码 op 点击时通过 asset 端点按需拉取磁盘当前内容展示；「阅读 / 原文」按钮改为状态标签（高亮 = 当前模式） |
 | `v0.4.4` | 与上一版相同 | **Markdown 图片渲染三连修**：工作区相对路径图片通过 session 参数路由到会话工作目录（asset 端点）；HTML 块支持（`<div>` / `<p>` / `<center>` 包装块提取 align 居中、内容递归解析——GitHub README 居中插图标准写法）；HTML 注释 `<!-- -->` 渲染为空 |
 | `v0.3.33` | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，整合 alpha.1–5 全部插件面变更；升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无 alpha.5 之外的插件面破坏性变更；零适配改动）；双 bundle `node --check` 通过 |

@@ -72,6 +72,14 @@ Paste this prompt into any DSH session and the agent installs it for you:
 
 | Plugin version | DSH version | Notes |
 | --- | --- | --- |
+| `v0.4.3` | same as above | Declares dsh-v0.2.2-rc.1 (fleet upgrade verified, zero adaptation) |
+| `v0.4.2` | same as above | Declares dsh-v0.2.2-alpha.3 (fleet contract sweep, zero adaptation) |
+| `v0.4.1` | same as above | Declares dsh-v0.2.2-alpha.2 (contract-verified zero adaptation: all slots/services/remote APIs alive) |
+| `v0.4.0` | same as above | **File-action shortcuts**: reveal in file manager / open with default app per traced file op (via the host Session Remote contract; auto-hidden on hosts without a desktop) |
+| `v0.3.37` | same as above | Declares dsh-v0.2.1-rc.4 (synchronization release, zero plugin-surface delta) |
+| `v0.3.36` | same as above | Declares 0.2.1-rc.2 / 0.2.1-rc.3 compatible (backfilled version rows for earlier feature releases) |
+| `v0.3.35` | same as above | Declares dsh-v0.2.1-rc.1 (first 0.2.1 RC, zero adaptation) |
+| `v0.3.34` | same as above | **Per-session drawer state**: open/selected/scroll positions are independent across session switches |
 | `v0.4.5` (default) | same as previous | **Code-execution file tracing**: direct fs calls in code-execution tool payloads such as run_code / pwsh (readFileSync / writeFileSync / Get-Content / Set-Content string-literal paths) now land in the file-trace panel, labeled Code read / Code write to distinguish them from tool operations; heuristic scanning, dynamic paths invisible; clicking a code op fetches the current on-disk content on demand via the asset endpoint; the Reading/Raw buttons become status chips (highlighted = current mode) |
 | `v0.4.4` | same as previous | **Markdown image rendering triple fix**: workspace-relative images route through the session parameter to the session working directory (asset endpoint); HTML block support (`<div>` / `<p>` / `<center>` wrapper blocks with align centering and recursive content parsing — the standard GitHub README centered-image idiom); HTML comments `<!-- -->` render as empty |
 | `v0.3.33` | same as previous | Declare dsh-v0.2.1-rc.1 support (first release candidate of the 0.2.1 line, consolidating the alpha.1-5 plugin-plane changes; verified: web-profile --dump-config loads every plugin row with zero errors, read-only runtime probes green, the host keeps webStartup and ships no plugin-plane breaking change beyond alpha.5; zero adaptation) |
