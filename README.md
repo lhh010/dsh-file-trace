@@ -8,7 +8,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 > **你的 DSH 版本决定装哪个插件版本**（装错会崩：常见症状 `useConversation is not a function`）
 >
-> - DSH **0.1.2-alpha.1 ~ 0.2.1-alpha.1**：装**新版**（下方默认命令，当前 `#v0.3.28`；各 DSH 版本对应的插件 tag 见[版本对应表](#版本对应--version-compatibility)）
+> - DSH **0.1.2-alpha.1 ~ 0.2.1-alpha.1**：装**新版**（下方默认命令，当前 `#v0.4.5`；各 DSH 版本对应的插件 tag 见[版本对应表](#版本对应--version-compatibility)）
 > - 更旧的 DSH（0.1.1-rc.2 及以前）：**无可用版本**
 >
 
@@ -19,7 +19,7 @@ DSH Web UI 文件追踪插件：像 Codex / Claude Code 一样**记录并查看�
 
 ```sh
 # 方式一：git 依赖固定 tag（公开镜像，推荐；也可用 github:lhh010/dsh-file-trace）
-dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.28'
+dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.4.5'
 
 # 方式二：本地 link（开发；克隆的仓库构建产物已入库，改源码后需 pnpm run build）
 git clone https://github.com/lhh010/dsh-file-trace.git
@@ -52,7 +52,7 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 把下面这段提示词发给任意一个 DSH 会话，模型会替你完成安装：
 
 > 帮我安装 dsh-file-trace 插件（DSH 文件追踪：记录并查看模型读写编辑的文件与 diff），步骤：
-> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.3.12'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
+> 1. 执行 `dsh plugin --profile web add '@dsh-external/dsh-file-trace@github:lhh010/dsh-file-trace#v0.4.5'`（首次可能被 pnpm 11 拦截 node-pty 构建脚本而失败）
 > 2. 在 `~/.dsh/profiles/web` 下执行 `pnpm approve-builds --all`（放行构建脚本）
 > 3. 再执行一次第 1 步的安装命令
 > 4. 完成后在 `~/.dsh/profiles/web/cordis.patch.yml` 追加 - insert 插件行（id: dsh-file-trace，name: '@dsh-external/dsh-file-trace'），并提醒我硬刷新浏览器（Ctrl/Cmd+Shift+R）
@@ -65,6 +65,8 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 - **Markdown 阅读模式 + Mermaid**：`.md / .markdown / .mdx` 文件的操作视图头部出现「阅读 / 原文」切换按钮（读取 / 写入 / 编辑三种操作均有）；阅读模式以 **Obsidian 风格**渲染完整文档——多级标题、表格（含对齐）、分割线、加粗/斜体/加粗斜体、删除线、高亮 `==`、行内代码、代码块、引用、有序/无序列表与任务清单、链接、`[[Wiki 链接]]`；图片按 URL 渲染，本地路径图片与非图片附件统一显示为带文件名的文件徽标；YAML frontmatter 显示为代码块。编辑操作优先用窗口内已知的前置内容重建变更后的完整文档。
 - **Mermaid 图渲染（懒加载 + 安全清洗 + 缩放）**：阅读模式下 ```mermaid 围栏按需从宿主 `/dsh-file-trace/resources` 懒加载 mermaid chunk（单文件打包）渲染成图；`securityLevel: strict` + `htmlLabels: false` 之上再经**零依赖 SVG 白名单清洗**（剥离 foreignObject/script/事件属性/全部链接）才注入 DOM；**点击图打开全屏缩放**（滚轮缩放/拖拽平移/±0 键盘/双击遮罩或 Esc 关闭）；加载失败或离线时自动回退为原样代码块。
 - **数学公式渲染（KaTeX，懒加载）**：阅读模式下 `$$...$$` 块公式与 `$...$` 行内公式按需从宿主 `/dsh-file-trace/resources` 懒加载 katex chunk（单文件打包，CSS 与全部字体 base64 内联，一次加载覆盖全文档）真正排版——上下标、分式、根号、希腊字母、\mathrm/\sqrt/\times/\quad 等均正常渲染；`throwOnError: false` 使单条公式语法错误只红字标注该条，不影响其余内容；chunk 加载失败或离线时自动回退为原文文本（v0.3.13 及以前的行为），只降级不崩溃。
+- **Markdown 图片渲染三连修（v0.4.4）**：阅读模式下**工作区相对路径图片**经 session 参数路由到会话工作目录（asset 端点）真实渲染；支持 **HTML 块**（`<div>` / `<p>` / `<center>` 包装块——GitHub README 居中插图标准写法：提取 `align` 居中、内容递归解析）；HTML 注释 `<!-- -->` 渲染为空。
+- **代码执行文件追踪（v0.4.5）**：run_code / pwsh 等代码执行工具载荷中的**直接 fs 调用**（`readFileSync` / `writeFileSync` / `Get-Content` / `Set-Content` 等字符串字面量路径）也进入文件追踪面板，标注为「**代码读取**」「**代码写入**」（Code read / Code write），与工具操作区分；启发式扫描，动态拼接的路径不可见。代码 op 点击时经 asset 端点**按需拉取磁盘当前内容**展示；「阅读 / 原文」按钮改为**状态标签**（高亮 = 当前模式）。
 - **出错统一展示**：读取 / 写入 / 编辑**失败**的操作点开即显示结果里的真实错误文本（红色错误块），不再渲染伪造 diff。
 - **语法高亮**：按扩展名识别常见语言（C/C++、Java、C#、JS/TS（含 mjs/cjs/mts/cts）、Python、Go、Rust、cmd/batch、PowerShell、JSON/JSONC/JSON5/YAML/TOML/INI、SQL、CSS/SCSS/Less、HTML/XML/SVG/Vue、GraphQL、LaTeX/TeX（TeXstudio 风格初步渲染：命令/数学/注释/结构高亮）等），读取视图与 diff 行的**关键字 / 字符串 / 数字 / 类型 / 函数 / 注释 / 预处理指令**分别着色；修改行的行内变更底色与着色叠加。
 - **写入视图**：新文件写入显示为**全量新增（每行绿色 +）**；覆盖修改时按真实差异做 del/add。
@@ -85,7 +87,9 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.3.33`（默认） | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，整合 alpha.1–5 全部插件面变更；升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无 alpha.5 之外的插件面破坏性变更；零适配改动）；双 bundle `node --check` 通过 |
+| `v0.4.5`（默认） | 与上一版相同 | **代码执行文件追踪**：run_code / pwsh 等代码执行工具载荷中的直接 fs 调用（readFileSync / writeFileSync / Get-Content / Set-Content 等字符串字面量路径）也进入文件追踪面板，标注为「代码读取」「代码写入」（Code read / Code write）与工具操作区分；启发式扫描，动态路径不可见；代码 op 点击时通过 asset 端点按需拉取磁盘当前内容展示；「阅读 / 原文」按钮改为状态标签（高亮 = 当前模式） |
+| `v0.4.4` | 与上一版相同 | **Markdown 图片渲染三连修**：工作区相对路径图片通过 session 参数路由到会话工作目录（asset 端点）；HTML 块支持（`<div>` / `<p>` / `<center>` 包装块提取 align 居中、内容递归解析——GitHub README 居中插图标准写法）；HTML 注释 `<!-- -->` 渲染为空 |
+| `v0.3.33` | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，整合 alpha.1–5 全部插件面变更；升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无 alpha.5 之外的插件面破坏性变更；零适配改动）；双 bundle `node --check` 通过 |
 | `v0.3.32` | 与上一版相同 | 声明支持 dsh-v0.2.1-alpha.5（升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无插件面破坏性变更——新增的 `conversation.input.model.label` Slot 为并列新增键，与本插件既有注入面（`conversation.input.for` / `conversation.input.dock` 等）无冲突；零适配改动）；双 bundle `node --check` 通过 |
 | `v0.3.31` | 与上一版相同 | 声明支持 dsh-v0.2.1-alpha.4（升级实机验证：web profile `--dump-config` 全插件行加载零错误；宿主保留 webStartup 服务、无插件面破坏性变更——新引入的 engines.dsh 兼容判定仅对声明者生效，本插件未声明故沿用原有规则；六插件零适配改动）；双 bundle `node --check` 通过 |
 | `v0.3.30` | 与上一版相同 | 声明支持 dsh-v0.2.1-alpha.3（升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务，六插件零适配改动）；双 bundle `node --check` 通过 |
