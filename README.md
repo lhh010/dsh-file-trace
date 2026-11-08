@@ -87,22 +87,22 @@ dsh plugin --profile web add link:/path/to/dsh-file-trace
 
 | 插件版本 | DSH 版本 | 说明 |
 | --- | --- | --- |
-| `v0.4.3` | 与上一版相同 | 声明支持 dsh-v0.2.2-rc.1（舰队升级实机验证，零适配改动） |
-| `v0.4.2` | 与上一版相同 | 声明支持 dsh-v0.2.2-alpha.3（舰队契约巡检，零适配改动） |
-| `v0.4.1` | 与上一版相同 | 声明支持 dsh-v0.2.2-alpha.2（契约验证零适配：全部 slot/服务/remote API 存活） |
-| `v0.4.0` | 与上一版相同 | **文件操作直达系统**：「在资源管理器中显示」「用本地程序打开」——追踪面板每条文件操作可一键唤起系统文件管理器/默认应用（经宿主 Session Remote 的 canOpenWorkspacePath/openWorkspacePath 契约，无桌面宿主自动降级隐藏） |
-| `v0.3.37` | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.4（同步发版，零插件面差异） |
-| `v0.3.36` | 与上一版相同 | 声明式兼容 0.2.1-rc.2 / 0.2.1-rc.3（并补登此前功能发版的版本行） |
-| `v0.3.35` | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，零适配改动） |
-| `v0.3.34` | 与上一版相同 | **每个会话的文件追踪抽屉状态独立**：多会话切换时各自的展开/选中/滚动位置互不干扰 |
-| `v0.4.5`（默认） | 与上一版相同 | **代码执行文件追踪**：run_code / pwsh 等代码执行工具载荷中的直接 fs 调用（readFileSync / writeFileSync / Get-Content / Set-Content 等字符串字面量路径）也进入文件追踪面板，标注为「代码读取」「代码写入」（Code read / Code write）与工具操作区分；启发式扫描，动态路径不可见；代码 op 点击时通过 asset 端点按需拉取磁盘当前内容展示；「阅读 / 原文」按钮改为状态标签（高亮 = 当前模式） |
-| `v0.4.4` | 与上一版相同 | **Markdown 图片渲染三连修**：工作区相对路径图片通过 session 参数路由到会话工作目录（asset 端点）；HTML 块支持（`<div>` / `<p>` / `<center>` 包装块提取 align 居中、内容递归解析——GitHub README 居中插图标准写法）；HTML 注释 `<!-- -->` 渲染为空 |
-| `v0.3.33` | 与上一版相同 | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，整合 alpha.1–5 全部插件面变更；升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无 alpha.5 之外的插件面破坏性变更；零适配改动）；双 bundle `node --check` 通过 |
-| `v0.3.32` | 与上一版相同 | 声明支持 dsh-v0.2.1-alpha.5（升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无插件面破坏性变更——新增的 `conversation.input.model.label` Slot 为并列新增键，与本插件既有注入面（`conversation.input.for` / `conversation.input.dock` 等）无冲突；零适配改动）；双 bundle `node --check` 通过 |
-| `v0.3.31` | 与上一版相同 | 声明支持 dsh-v0.2.1-alpha.4（升级实机验证：web profile `--dump-config` 全插件行加载零错误；宿主保留 webStartup 服务、无插件面破坏性变更——新引入的 engines.dsh 兼容判定仅对声明者生效，本插件未声明故沿用原有规则；六插件零适配改动）；双 bundle `node --check` 通过 |
-| `v0.3.30` | 与上一版相同 | 声明支持 dsh-v0.2.1-alpha.3（升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务，六插件零适配改动）；双 bundle `node --check` 通过 |
-| `v0.3.29` | 与上一版相同 | **Markdown 阅读模式渲染内联 SVG 与 `<details>` 折叠块**：文档里直接书写的 `<svg>` 标记（可带 `<?xml?>` 声明、可嵌在 `<details><summary>` 下）经 DOMParser 校验后以 blob `<img>` 真实渲染（图像上下文禁脚本、SMIL 动画照常，与 `.svg` 文件预览同一安全通道）；非法 XML 降级为源码块而非无声裂图；`<details>` 渲染为原生可折叠块（summary + 递归内层块）。GitHub 风格图表嵌入自此可见；typecheck/125 单测/构建全绿 |
-| `v0.3.28` | 与上一版相同 | **自带 bundle 声明**：补齐 `cordis.patch.yml` 并声明 `dsh.bundle.patch`——`dsh plugin --profile web add` 装完自动注册并挂载 profile 层，不再需要手写 insert 行（社区反馈「GUI 安装后不生效」的根因）；双 bundle `node --check` 通过 |
+| `v0.4.3` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.2-rc.1`（其间全线） | 声明支持 dsh-v0.2.2-rc.1（舰队升级实机验证，零适配改动） |
+| `v0.4.2` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.2-alpha.3`（其间全线） | 声明支持 dsh-v0.2.2-alpha.3（舰队契约巡检，零适配改动） |
+| `v0.4.1` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.2-alpha.2`（其间全线） | 声明支持 dsh-v0.2.2-alpha.2（契约验证零适配：全部 slot/服务/remote API 存活） |
+| `v0.4.0` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-rc.4`（其间全线） | **文件操作直达系统**：「在资源管理器中显示」「用本地程序打开」——追踪面板每条文件操作可一键唤起系统文件管理器/默认应用（经宿主 Session Remote 的 canOpenWorkspacePath/openWorkspacePath 契约，无桌面宿主自动降级隐藏） |
+| `v0.3.37` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-rc.4`（其间全线） | 声明支持 dsh-v0.2.1-rc.4（同步发版，零插件面差异） |
+| `v0.3.36` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-rc.3`（其间全线） | 声明式兼容 0.2.1-rc.2 / 0.2.1-rc.3（并补登此前功能发版的版本行） |
+| `v0.3.35` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-rc.1`（其间全线） | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，零适配改动） |
+| `v0.3.34` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-rc.1`（其间全线） | **每个会话的文件追踪抽屉状态独立**：多会话切换时各自的展开/选中/滚动位置互不干扰 |
+| `v0.4.5`（默认） | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.2-rc.1`（其间全线） | **代码执行文件追踪**：run_code / pwsh 等代码执行工具载荷中的直接 fs 调用（readFileSync / writeFileSync / Get-Content / Set-Content 等字符串字面量路径）也进入文件追踪面板，标注为「代码读取」「代码写入」（Code read / Code write）与工具操作区分；启发式扫描，动态路径不可见；代码 op 点击时通过 asset 端点按需拉取磁盘当前内容展示；「阅读 / 原文」按钮改为状态标签（高亮 = 当前模式） |
+| `v0.4.4` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.2-rc.1`（其间全线） | **Markdown 图片渲染三连修**：工作区相对路径图片通过 session 参数路由到会话工作目录（asset 端点）；HTML 块支持（`<div>` / `<p>` / `<center>` 包装块提取 align 居中、内容递归解析——GitHub README 居中插图标准写法）；HTML 注释 `<!-- -->` 渲染为空 |
+| `v0.3.33` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-rc.1`（其间全线） | 声明支持 dsh-v0.2.1-rc.1（0.2.1 系首个候选版，整合 alpha.1–5 全部插件面变更；升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无 alpha.5 之外的插件面破坏性变更；零适配改动）；双 bundle `node --check` 通过 |
+| `v0.3.32` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-alpha.5`（其间全线） | 声明支持 dsh-v0.2.1-alpha.5（升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务、无插件面破坏性变更——新增的 `conversation.input.model.label` Slot 为并列新增键，与本插件既有注入面（`conversation.input.for` / `conversation.input.dock` 等）无冲突；零适配改动）；双 bundle `node --check` 通过 |
+| `v0.3.31` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-alpha.4`（其间全线） | 声明支持 dsh-v0.2.1-alpha.4（升级实机验证：web profile `--dump-config` 全插件行加载零错误；宿主保留 webStartup 服务、无插件面破坏性变更——新引入的 engines.dsh 兼容判定仅对声明者生效，本插件未声明故沿用原有规则；六插件零适配改动）；双 bundle `node --check` 通过 |
+| `v0.3.30` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-alpha.3`（其间全线） | 声明支持 dsh-v0.2.1-alpha.3（升级实机验证：web profile `--dump-config` 全插件行加载零错误；运行时只读探测 file-trace mermaid/katex 路由 200、better-sidebar fence 活；宿主保留 webStartup 服务，六插件零适配改动）；双 bundle `node --check` 通过 |
+| `v0.3.29` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-alpha.2`（其间全线） | **Markdown 阅读模式渲染内联 SVG 与 `<details>` 折叠块**：文档里直接书写的 `<svg>` 标记（可带 `<?xml?>` 声明、可嵌在 `<details><summary>` 下）经 DOMParser 校验后以 blob `<img>` 真实渲染（图像上下文禁脚本、SMIL 动画照常，与 `.svg` 文件预览同一安全通道）；非法 XML 降级为源码块而非无声裂图；`<details>` 渲染为原生可折叠块（summary + 递归内层块）。GitHub 风格图表嵌入自此可见；typecheck/125 单测/构建全绿 |
+| `v0.3.28` | `dsh-v0.1.2-alpha.1` ~ `dsh-v0.2.1-alpha.2`（其间全线） | **自带 bundle 声明**：补齐 `cordis.patch.yml` 并声明 `dsh.bundle.patch`——`dsh plugin --profile web add` 装完自动注册并挂载 profile 层，不再需要手写 insert 行（社区反馈「GUI 安装后不生效」的根因）；双 bundle `node --check` 通过 |
 | `v0.3.27` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1`、`0.2.1-alpha.2` | 声明支持 dsh-v0.2.1-alpha.2（升级实机验证：web profile `--dump-config` 全插件行加载、peer 校验零错误，宿主启动监听正常，零适配改动）；双 bundle `node --check` 通过 |
 | `v0.3.26` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1` | 声明支持 dsh-v0.2.1-alpha.1（升级实机验证：web 宿主七插件挂载激活正常，零适配改动）；typecheck/115 单测/构建全绿 |
 | `v0.3.25` | `dsh-v0.1.2-alpha.1 ~ alpha.5`、`rc.1`、`0.1.3-alpha.1 ~ 0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` | **流式输出下的性能修复**：① 按节点身份缓存操作提取（稳定 tool-result 只 parse/拼接一次，不再每个流式 delta 全窗口重算）；② 会话订阅传元素身份 eq——无新文件操作的流式文本期间完全跳过重渲染；③ 拖动/缩放手势改为 pointermove 直写 DOM、松手才提交 state（渲染风暴下拖动依然跟手）；并修复拖动后 localStorage 持久化保存旧位置的预存 bug。typecheck/115 单测/构建全绿，实机验证手势中途位置精确跟随 + 持久化正确 |
