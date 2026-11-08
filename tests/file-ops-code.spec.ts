@@ -23,7 +23,7 @@ describe('code-op extraction', () => {
     expect(write.viaCode).toBe(true)
   })
   it('deduplicates repeated calls to the same path', () => {
-    const ops = extractFileOps([codeNode("readFileSync('a.txt'); readFileSync('a.txt')")], [])
+    const ops = extractFileOps([codeNode("readFileSync('C:/tmp/a.txt'); readFileSync('C:/tmp/a.txt')")], [])
     expect(ops).toHaveLength(1)
   })
   it('ignores node: protocol and URLs', () => {
@@ -58,6 +58,22 @@ describe('code-op dynamic path rejection', () => {
   })
   it('still accepts complete literal paths', () => {
     const ops = extractFileOps([codeNode("readFileSync('E:/dir/a.json')")], [])
+    expect(ops).toHaveLength(1)
+  })
+})
+
+describe('code-op prose and bare-name rejection', () => {
+  it('rejects prose after cmdlet names in documentation text (no quotes)', () => {
+    const prose = 'readFileSync / writeFileSync / Get-Content / Set-Content 等字符串字面量路径）现在也进文件追踪面板，标注为「代码读取」'
+    const ops = extractFileOps([codeNode(prose)], [])
+    expect(ops).toHaveLength(0)
+  })
+  it('rejects bare relative filenames (no directory component)', () => {
+    const ops = extractFileOps([codeNode("readFileSync('compatibility.json')")], [])
+    expect(ops).toHaveLength(0)
+  })
+  it('accepts ./ and ../ relative paths', () => {
+    const ops = extractFileOps([codeNode("readFileSync('./src/a.ts')")], [])
     expect(ops).toHaveLength(1)
   })
 })

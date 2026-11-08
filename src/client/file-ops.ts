@@ -66,9 +66,10 @@ const CODE_TOOLS = new Set(['run_code', 'pwsh', 'bash', 'shell', 'execute_code',
 const CODE_READ_RE = /(?:readFileSync|readFile|openSync|createReadStream)\s*\(\s*['"]([^'"]{2,}?)['"](?!\s*\+)/g
 /** Direct fs write call patterns in executed code. */
 const CODE_WRITE_RE = /(?:writeFileSync|writeFile|createWriteStream|appendFileSync|rmSync|unlinkSync|mkdirSync|copyFileSync|renameSync)\s*\(\s*['"]([^'"]{2,}?)['"](?!\s*\+)/g
-/** PowerShell file cmdlet patterns. */
-const PS_READ_RE = /(?:Get-Content|gc|cat)\s+(?:-Path\s+)?['"]?([^'"\r\n|;]{2,}?)['"]?(?=\s|$|;|\|)/g
-const PS_WRITE_RE = /(?:Set-Content|sc|Out-File|Add-Content)\s+(?:-Path\s+)?['"]?([^'"\r\n|;]{2,}?)['"]?(?=\s|$|;|\|)/g
+/** PowerShell file cmdlet patterns（引号必填——可选引号会把命令说明散文
+ * 里跟在 cmdlet 名后的整段文字懒匹配到行尾，产生中文假路径）。 */
+const PS_READ_RE = /(?:Get-Content|gc|cat)\s+(?:-Path\s+)?['"]([^'"\r\n|;]{2,}?)['"]/g
+const PS_WRITE_RE = /(?:Set-Content|sc|Out-File|Add-Content)\s+(?:-Path\s+)?['"]([^'"\r\n|;]{2,}?)['"]/g
 
 /**
  * Extract synthetic file ops from a code-execution tool's payload: direct
@@ -98,6 +99,9 @@ function codeOpsOf(argsRaw: string, callId: string, time: number, isError: boole
     // fragments like readFileSync('E:/base/' + name) are not complete paths).
     if (/^(https?:|node:|data:)/.test(path) || path.startsWith('-')) return
     if (/[\\/]$/.test(path)) return
+    // 仅接受绝对形态路径（盘符/UNC/根相对/./../ 开头）：裸文件名无法定位
+    // 磁盘文件（asset 端点解析不了），散文片段也多半长这样——一并排除。
+    if (!/^([a-z]:[\\/]|\\\\|\/|\.{1,2}\/)/i.test(path)) return
     const dedupe = kind + ':' + path
     if (seen.has(dedupe)) return
     seen.add(dedupe)
