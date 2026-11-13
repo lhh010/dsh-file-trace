@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "文件追踪 (dsh-file-trace)",
+    "description": "记录模型读取 / 写入 / 编辑的每个文件（含代码执行中的 fs 调用），终端风逐行 diff、Markdown / KaTeX / Mermaid / 图片渲染、一键直达资源管理器。"
+  }
+}

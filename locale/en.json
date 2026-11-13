@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "File Trace (dsh-file-trace)",
+    "description": "Tracks every file the model reads, writes, or edits (including fs calls inside executed code), with terminal-style diffs, Markdown/KaTeX/Mermaid/image rendering, and reveal-in-explorer."
+  }
+}

@@ -30,7 +30,8 @@
   "files": [
     "lib",
     "src",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "locale"
   ],
   "scripts": {
     "build": "tsdown && node scripts/build-mermaid-chunk.mjs && node scripts/build-katex-chunk.mjs",
